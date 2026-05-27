@@ -7,30 +7,46 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Plus Jakarta Sans', 'sans-serif'] },
+                    colors: {
+                        gold: '#e2b938',
+                        darkbg: '#121212',
+                        cardbg: '#1e1e1e',
+                        btnbg: '#2a2a2a'
+                    }
+                }
+            }
+        }
+    </script>
     <style>
-        body { font-family: 'Plus Jakarta Sans', sans-serif; }
-        .category-pill.active { background: #0ea5e9; color: #fff; }
-        .menu-section { scroll-margin-top: 120px; }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #121212; color: #ffffff; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        input[type=number]::-webkit-inner-spin-button, 
+        input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+        input[type=number] { -moz-appearance: textfield; }
     </style>
 </head>
-<body class="bg-slate-50 min-h-screen pb-32">
+<body class="min-h-screen pb-28">
 
-<header class="sticky top-0 z-30 bg-white border-b border-slate-200 shadow-sm">
-    <div class="max-w-xl mx-auto px-4 py-3 flex items-center justify-between">
-        <div>
-            <p class="font-bold text-slate-900 text-base">ARZANA</p>
-            <p class="text-xs text-slate-500">Meja <span class="font-semibold text-sky-600"><?= esc($meja['nomor_meja']) ?></span></p>
+<header class="sticky top-0 z-30 bg-darkbg pb-3 pt-5 px-4 border-b border-gray-800">
+    <div class="max-w-xl mx-auto flex items-center justify-between mb-5">
+        <h1 class="font-bold text-gold text-xl tracking-widest uppercase">ARZANA</h1>
+        <div class="flex items-center gap-5 text-gold text-xl">
+            <p class="text-xs" style="color:#888;"><span style="color:#FDE047; font-weight:600;"><?= esc($meja['nomor_meja']) ?></span></p>
         </div>
-        <button onclick="openCart()" class="relative w-10 h-10 flex items-center justify-center bg-sky-500 hover:bg-sky-600 text-white rounded-xl transition-colors">
-            <i class="fa-solid fa-bag-shopping"></i>
-            <span id="cart-badge" class="hidden absolute -top-1 -right-1 w-4 h-4 text-xs bg-rose-500 text-white rounded-full flex items-center justify-center font-bold">0</span>
-        </button>
     </div>
-    <div class="max-w-xl mx-auto px-4 pb-3 flex gap-2 overflow-x-auto no-scrollbar">
+    <div class="max-w-xl mx-auto flex gap-3 overflow-x-auto no-scrollbar">
+        <button onclick="filterKategori('semua')" id="btn-kat-semua" class="category-pill flex-shrink-0 text-sm font-semibold px-5 py-2.5 rounded-xl bg-gold text-black transition-all">
+            Semua
+        </button>
         <?php foreach ($menuByKategori as $kid => $kat): ?>
         <?php if (!empty($kat['items'])): ?>
-        <button onclick="scrollToKategori(<?= $kid ?>)"
-            class="category-pill flex-shrink-0 text-xs font-semibold px-3.5 py-1.5 rounded-full border border-slate-200 text-slate-600 hover:bg-sky-500 hover:text-white hover:border-sky-500 transition-all">
+        <button onclick="filterKategori(<?= $kid ?>)" id="btn-kat-<?= $kid ?>" class="category-pill flex-shrink-0 text-sm font-semibold px-5 py-2.5 rounded-xl bg-btnbg text-gray-300 transition-all">
             <?= esc($kat['nama']) ?>
         </button>
         <?php endif; ?>
@@ -38,153 +54,173 @@
     </div>
 </header>
 
-<main class="max-w-xl mx-auto px-4 pt-4 space-y-8">
-    <?php foreach ($menuByKategori as $kid => $kat): ?>
-    <?php if (!empty($kat['items'])): ?>
-    <section id="kategori-<?= $kid ?>" class="menu-section">
-        <h2 class="text-sm font-bold text-slate-500 uppercase tracking-widest mb-3"><?= esc($kat['nama']) ?></h2>
-        <div class="space-y-2">
-            <?php foreach ($kat['items'] as $item): ?>
-            <div class="bg-white rounded-xl border border-slate-200 p-3 flex items-center gap-3 <?= !$item['stok'] ? 'opacity-60' : '' ?>">
-                <div class="w-16 h-16 rounded-lg flex-shrink-0 overflow-hidden bg-slate-100">
-                    <?php if ($item['gambar']): ?>
-                    <img src="<?= base_url('uploads/menu/' . esc($item['gambar'])) ?>" alt="<?= esc($item['nama_menu']) ?>" class="w-full h-full object-cover">
-                    <?php else: ?>
-                    <div class="w-full h-full flex items-center justify-center">
-                        <i class="fa-solid fa-image text-slate-300 text-xl"></i>
-                    </div>
-                    <?php endif; ?>
+<main class="max-w-xl mx-auto px-4 pt-6">
+    <div class="grid grid-cols-2 gap-4" id="menu-grid">
+        <?php foreach ($menuByKategori as $kid => $kat): ?>
+        <?php foreach ($kat['items'] as $item): ?>
+        <div class="menu-item cardbg rounded-2xl overflow-hidden flex flex-col border border-gray-800" data-kategori="<?= $kid ?>">
+            <div class="w-full h-36 bg-btnbg relative">
+                <?php if ($item['gambar']): ?>
+                <img src="<?= base_url('uploads/menu/' . esc($item['gambar'])) ?>" alt="<?= esc($item['nama_menu']) ?>" class="w-full h-full object-cover">
+                <?php else: ?>
+                <div class="w-full h-full flex items-center justify-center">
+                    <i class="fa-solid fa-image text-gray-600 text-2xl"></i>
                 </div>
-                <div class="flex-1 min-w-0">
-                    <p class="font-semibold text-slate-800 text-sm"><?= esc($item['nama_menu']) ?></p>
-                    <?php if ($item['deskripsi']): ?>
-                    <p class="text-xs text-slate-400 mt-0.5 truncate"><?= esc($item['deskripsi']) ?></p>
-                    <?php endif; ?>
-                    <p class="text-sm font-bold text-sky-600 mt-1">Rp <?= number_format($item['harga'], 0, ',', '.') ?></p>
-                </div>
-                <div class="flex-shrink-0">
-                    <?php if ($item['stok']): ?>
-                    <button onclick='addToCart(<?= json_encode(['id' => $item['id'], 'nama_menu' => $item['nama_menu'], 'harga' => $item['harga']]) ?>)'
-                        class="w-8 h-8 flex items-center justify-center bg-sky-500 hover:bg-sky-600 text-white rounded-lg transition-colors">
-                        <i class="fa-solid fa-plus text-xs"></i>
-                    </button>
-                    <?php else: ?>
-                    <span class="text-xs text-rose-400 font-medium">Habis</span>
-                    <?php endif; ?>
+                <?php endif; ?>
+            </div>
+            <div class="p-4 flex flex-col flex-1">
+                <p class="font-semibold text-white text-sm mb-1 leading-tight"><?= esc($item['nama_menu']) ?></p>
+                <p class="text-sm font-bold text-gold mb-4 mt-auto">Rp <?= number_format($item['harga'], 0, ',', '.') ?></p>
+                <div class="action-container mt-auto" data-id="<?= $item['id'] ?>" data-nama="<?= esc($item['nama_menu']) ?>" data-harga="<?= $item['harga'] ?>" data-stok="<?= $item['stok'] ?>">
                 </div>
             </div>
-            <?php endforeach; ?>
         </div>
-    </section>
-    <?php endif; ?>
-    <?php endforeach; ?>
+        <?php endforeach; ?>
+        <?php endforeach; ?>
+    </div>
 </main>
 
-<div id="panel-cart" class="hidden fixed inset-0 z-40 flex flex-col">
-    <div class="flex-1 bg-black/50 backdrop-blur-sm" onclick="closeCart()"></div>
-    <div class="bg-white rounded-t-2xl max-h-[80vh] flex flex-col shadow-2xl">
-        <div class="flex items-center justify-between px-5 py-4 border-b border-slate-100">
-            <h3 class="font-semibold text-slate-800">Keranjang</h3>
-            <button onclick="closeCart()" class="w-7 h-7 flex items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 transition-colors">
-                <i class="fa-solid fa-xmark text-xs"></i>
-            </button>
-        </div>
-        <div id="cart-list" class="flex-1 overflow-y-auto px-5 py-3 space-y-3"></div>
-        <div class="px-5 py-4 border-t border-slate-100">
-            <div class="flex items-center justify-between mb-3">
-                <span class="text-sm text-slate-600 font-medium">Total</span>
-                <span id="cart-total" class="text-base font-bold text-slate-900">Rp 0</span>
+<div id="bottom-bar" class="fixed bottom-0 inset-x-0 bg-cardbg border-t border-gray-800 z-40 transform translate-y-full transition-transform duration-300">
+    <div class="max-w-xl mx-auto px-5 py-4 flex items-center justify-between">
+        <div class="flex items-center gap-4">
+            <div class="relative">
+                <i class="fa-solid fa-cart-shopping text-gold text-3xl"></i>
+                <span id="cart-badge" class="absolute -top-1 -right-2 w-5 h-5 bg-red-500 text-white text-[11px] font-bold rounded-full flex items-center justify-center">0</span>
             </div>
-            <button onclick="goCheckout()" class="w-full bg-sky-500 hover:bg-sky-600 text-white font-semibold py-3 rounded-xl transition-colors text-sm">
-                Pesan Sekarang
-            </button>
+            <div class="ml-1">
+                <p class="text-xs text-gray-400 font-medium mb-0.5">Total Pembayaran</p>
+                <p id="cart-total" class="text-xl font-bold text-gold">Rp 0</p>
+            </div>
         </div>
+        <button onclick="goCheckout()" class="bg-gold hover:bg-yellow-500 text-black font-bold px-7 py-3 rounded-xl transition-colors text-sm">
+            Checkout
+        </button>
     </div>
 </div>
 
 <script>
-    const KODE_MEJA = '<?= $meja['kode_unik'] ?>';
+    const KODE_MEJA = '<?= esc($meja['kode_unik']) ?>';
     let cart = JSON.parse(localStorage.getItem('arzana_cart_' + KODE_MEJA) || '[]');
-
+    
     function saveCart() {
         localStorage.setItem('arzana_cart_' + KODE_MEJA, JSON.stringify(cart));
-        renderBadge();
+        updateAllUI();
     }
 
-    function renderBadge() {
-        const total = cart.reduce((s, i) => s + i.qty, 0);
-        const badge = document.getElementById('cart-badge');
-        badge.textContent = total;
-        badge.classList.toggle('hidden', total === 0);
-        badge.classList.toggle('flex', total > 0);
+    function addToCart(id, nama, harga) {
+        cart.push({ id: parseInt(id), nama_menu: nama, harga: parseInt(harga), qty: 1, catatan: '' });
+        saveCart();
     }
 
-    function addToCart(item) {
-        const idx = cart.findIndex(i => i.id === item.id);
+    function increaseQty(id) {
+        let item = cart.find(i => i.id === parseInt(id));
+        if (item) {
+            item.qty++;
+            saveCart();
+        }
+    }
+
+    function decreaseQty(id) {
+        let idx = cart.findIndex(i => i.id === parseInt(id));
         if (idx > -1) {
-            cart[idx].qty++;
+            if (cart[idx].qty > 1) {
+                cart[idx].qty--;
+            } else {
+                cart.splice(idx, 1);
+            }
+            saveCart();
+        }
+    }
+
+    function manualInput(id, val) {
+        let qty = parseInt(val);
+        let idx = cart.findIndex(i => i.id === parseInt(id));
+        if (idx > -1) {
+            if (isNaN(qty) || qty <= 0) {
+                cart.splice(idx, 1);
+            } else {
+                cart[idx].qty = qty;
+            }
+            saveCart();
+        }
+    }
+
+    function updateAllUI() {
+        document.querySelectorAll('.action-container').forEach(container => {
+            let id = parseInt(container.dataset.id);
+            let nama = container.dataset.nama;
+            let harga = parseInt(container.dataset.harga);
+            let stok = parseInt(container.dataset.stok);
+            
+            let item = cart.find(i => i.id === id);
+            
+            if (!stok) {
+                container.innerHTML = `<button disabled class="w-full bg-btnbg text-gray-500 font-bold py-2 rounded-xl text-sm h-10">Habis</button>`;
+                return;
+            }
+
+            if (item) {
+                container.innerHTML = `
+                    <div class="flex items-center justify-between h-10">
+                        <button onclick="decreaseQty(${id})" class="w-11 h-11 flex items-center justify-center bg-btnbg text-gray-300 rounded-xl transition-colors"><i class="fa-solid fa-minus text-sm"></i></button>
+                        <input type="number" onchange="manualInput(${id}, this.value)" value="${item.qty}" class="w-10 h-full bg-transparent text-white text-center text-base font-semibold focus:outline-none">
+                        <button onclick="increaseQty(${id})" class="w-11 h-11 flex items-center justify-center bg-gold text-black rounded-xl transition-colors"><i class="fa-solid fa-plus text-sm"></i></button>
+                    </div>
+                `;
+            } else {
+                container.innerHTML = `
+                    <button onclick="addToCart(${id}, '${nama.replace(/'/g, "\\'")}', ${harga})" class="w-full bg-gold hover:bg-yellow-500 text-black font-bold py-2 rounded-xl transition-colors text-sm flex items-center justify-center gap-2 h-10">
+                        <i class="fa-solid fa-plus text-base"></i>
+                    </button>
+                `;
+            }
+        });
+
+        updateBottomBar();
+    }
+
+    function updateBottomBar() {
+        const bottomBar = document.getElementById('bottom-bar');
+        const totalQty = cart.reduce((sum, item) => sum + item.qty, 0);
+        const totalPrice = cart.reduce((sum, item) => sum + (item.harga * item.qty), 0);
+        
+        if (totalQty > 0) {
+            document.getElementById('cart-badge').textContent = totalQty;
+            document.getElementById('cart-total').textContent = 'Rp ' + totalPrice.toLocaleString('id-ID');
+            bottomBar.classList.remove('translate-y-full');
         } else {
-            cart.push({ ...item, qty: 1, catatan: '' });
+            bottomBar.classList.add('translate-y-full');
         }
-        saveCart();
-        renderCart();
     }
 
-    function removeFromCart(id) {
-        const idx = cart.findIndex(i => i.id === id);
-        if (idx > -1) {
-            if (cart[idx].qty > 1) cart[idx].qty--;
-            else cart.splice(idx, 1);
+    function filterKategori(id) {
+        document.querySelectorAll('.category-pill').forEach(el => {
+            el.classList.remove('bg-gold', 'text-black');
+            el.classList.add('bg-btnbg', 'text-gray-300');
+        });
+        
+        let btnId = id === 'semua' ? 'btn-kat-semua' : 'btn-kat-' + id;
+        let activeBtn = document.getElementById(btnId);
+        if(activeBtn) {
+            activeBtn.classList.remove('bg-btnbg', 'text-gray-300');
+            activeBtn.classList.add('bg-gold', 'text-black');
         }
-        saveCart();
-        renderCart();
-    }
 
-    function renderCart() {
-        const list = document.getElementById('cart-list');
-        if (cart.length === 0) {
-            list.innerHTML = '<div class="py-10 text-center"><i class="fa-solid fa-bag-shopping text-slate-300 text-3xl mb-2"></i><p class="text-sm text-slate-400">Keranjang kosong</p></div>';
-            document.getElementById('cart-total').textContent = 'Rp 0';
-            return;
-        }
-        let total = 0;
-        list.innerHTML = cart.map(item => {
-            const sub = item.harga * item.qty;
-            total += sub;
-            return `<div class="flex items-center gap-3">
-                <div class="flex-1">
-                    <p class="text-sm font-medium text-slate-800">${item.nama_menu}</p>
-                    <p class="text-xs text-sky-600 font-semibold">Rp ${item.harga.toLocaleString('id-ID')}</p>
-                </div>
-                <div class="flex items-center gap-2">
-                    <button onclick="removeFromCart(${item.id})" class="w-7 h-7 flex items-center justify-center bg-slate-100 hover:bg-rose-50 hover:text-rose-500 rounded-lg text-slate-500 transition-colors">
-                        <i class="fa-solid fa-minus text-xs"></i>
-                    </button>
-                    <span class="text-sm font-semibold w-5 text-center">${item.qty}</span>
-                    <button onclick='addToCart(${JSON.stringify({id: item.id, nama_menu: item.nama_menu, harga: item.harga})})' class="w-7 h-7 flex items-center justify-center bg-sky-500 hover:bg-sky-600 text-white rounded-lg transition-colors">
-                        <i class="fa-solid fa-plus text-xs"></i>
-                    </button>
-                </div>
-            </div>`;
-        }).join('');
-        document.getElementById('cart-total').textContent = 'Rp ' + total.toLocaleString('id-ID');
+        document.querySelectorAll('.menu-item').forEach(item => {
+            if (id === 'semua' || item.dataset.kategori == id) {
+                item.style.display = 'flex';
+            } else {
+                item.style.display = 'none';
+            }
+        });
     }
-
-    function openCart() { document.getElementById('panel-cart').classList.remove('hidden'); renderCart(); }
-    function closeCart() { document.getElementById('panel-cart').classList.add('hidden'); }
 
     function goCheckout() {
         if (cart.length === 0) return;
-        closeCart();
         window.location.href = '<?= base_url('order/checkout/' . $meja['kode_unik']) ?>';
     }
 
-    function scrollToKategori(id) {
-        document.getElementById('kategori-' + id)?.scrollIntoView({ behavior: 'smooth' });
-    }
-
-    renderBadge();
+    updateAllUI();
 </script>
-
 </body>
 </html>
