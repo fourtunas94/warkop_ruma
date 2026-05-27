@@ -134,7 +134,6 @@
 <script src="https://code.responsivevoice.org/responsivevoice.js"></script>
 
 <script>
-    // 1. Update Jam Live
     function updateWaktu() {
         const timeEl = document.getElementById('waktu-sekarang');
         if (timeEl) {
@@ -143,13 +142,11 @@
     }
     updateWaktu();
     setInterval(updateWaktu, 1000);
-
-    // 2. Data State
     let lastId = <?= $last_id ?? 0 ?>;
     let isChecking = false;
     let csrfHash = '<?= csrf_hash() ?>'; 
-
-    // 3. FUNGSI TUTUP MODAL
+    let antreanTTS = [];
+    let sedangBicara = false;
     function tutupModal() {
         const modal = document.getElementById('modal-notif');
         const box = document.getElementById('modal-box');
@@ -162,34 +159,47 @@
         }
     }
 
-    // 4. SUARA TTS MENGGUNAKAN RESPONSIVE VOICE (Sangat Stabil)
-    function playTTS(meja, nama) {
-        const kalimat = `Ting tong. Ada pesanan baru masuk dari meja ${meja}, atas nama ${nama}. Silakan diproses.`;
+    function prosesAntreanSuara() {
+        if (antreanTTS.length === 0) {
+            sedangBicara = false;
+            setTimeout(tutupModal, 1000);
+            return;
+        }
+
+        sedangBicara = true;
         
+        const currentOrder = antreanTTS.shift();
+
+        const modal = document.getElementById('modal-notif');
+        if (modal && modal.classList.contains('hidden')) {
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            setTimeout(() => document.getElementById('modal-box').classList.remove('scale-95'), 50);
+        }
+        document.getElementById('notif-meja').textContent = currentOrder.meja;
+        document.getElementById('notif-nama').textContent = currentOrder.nama;
+
+        const kalimat = `Ting tong. Ada pesanan baru masuk dari meja ${currentOrder.meja}, atas nama ${currentOrder.nama}. Silakan segera diproses.`;
+
         try {
-            // Cek apakah library ResponsiveVoice berhasil dimuat
             if (typeof responsiveVoice !== 'undefined') {
                 responsiveVoice.speak(kalimat, "Indonesian Female", {
-                    pitch: 1.05, // Sedikit diimutkan nadanya
-                    rate: 0.95,  // Kecepatan pas agar terdengar jelas
+                    pitch: 1.05, 
+                    rate: 0.95,
                     volume: 1,
                     onend: function() {
-                        // EVENT: Tutup modal tepat 1 detik setelah suara selesai
-                        setTimeout(tutupModal, 1000);
+                        setTimeout(prosesAntreanSuara, 600);
                     }
                 });
             } else {
-                // Jika internet mati dan library tidak ter-load
-                console.warn("Library suara gagal dimuat.");
-                setTimeout(tutupModal, 5000);
+                setTimeout(prosesAntreanSuara, 2000);
             }
         } catch (err) {
             console.error("Gagal memutar suara:", err);
-            setTimeout(tutupModal, 5000);
+            setTimeout(prosesAntreanSuara, 2000);
         }
     }
 
-    // 5. Bikin Template HTML untuk di-inject
     function renderOrderHTML(p) {
         let itemsHTML = '';
         p.items.forEach(item => {
@@ -243,12 +253,8 @@
         </div>`;
     }
 
-    // 6. EKSEKUSI TAMPILAN
     function tanganiPesananBaru(pesananList) {
         try {
-            const info = pesananList[0];
-            
-            // A. INJEK ORDERAN KE DAFTAR
             const container = document.getElementById('order-container');
             const emptyState = document.getElementById('empty-state');
             
@@ -259,34 +265,23 @@
                 if (container) container.insertAdjacentHTML('afterbegin', renderOrderHTML(p));
                 let counter = document.getElementById('count-pending');
                 if (counter) counter.textContent = parseInt(counter.textContent) + 1;
+
+                antreanTTS.push({
+                    meja: p.nomor_meja,
+                    nama: p.nama_pemesan
+                });
             });
 
-            // B. MUNCULKAN MODAL POP UP
-            const modal = document.getElementById('modal-notif');
-            const box = document.getElementById('modal-box');
-            
-            if (modal && box) {
-                document.getElementById('notif-meja').textContent = info.nomor_meja;
-                document.getElementById('notif-nama').textContent = info.nama_pemesan;
-                
-                modal.classList.remove('hidden');
-                modal.classList.add('flex');
-                setTimeout(() => box.classList.remove('scale-95'), 50);
+            if (!sedangBicara) {
+                prosesAntreanSuara();
             }
-
-            // C. PANGGIL SUARA (Modal ditutup otomatis dari dalam fungsi playTTS)
-            playTTS(info.nomor_meja, info.nama_pemesan);
-
-            // D. Fallback Keamanan Ekstra (Jika suara macet, 10 detik pasti hilang)
-            setTimeout(tutupModal, 10000);
 
         } catch (err) {
             console.error("Terjadi kesalahan Tampilan:", err);
-            setTimeout(tutupModal, 5000);
+            setTimeout(tutupModal, 3000);
         }
     }
 
-    // 7. POLLING AJAX KE SERVER (Setiap 3 Detik)
     function cekPesananBaru() {
         if (isChecking) return;
         isChecking = true;

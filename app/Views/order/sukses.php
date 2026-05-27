@@ -27,15 +27,27 @@
 <body class="min-h-screen flex items-center justify-center px-4 py-8">
 <div class="w-full max-w-sm">
     <div class="bg-cardbg rounded-2xl border border-gray-800 overflow-hidden shadow-2xl">
+        
         <div class="px-6 py-8 text-center border-b border-gray-800 bg-btnbg/30">
             <div class="w-16 h-16 rounded-full bg-emerald-500/20 flex items-center justify-center mx-auto mb-4 border border-emerald-500/30 shadow-[0_0_15px_rgba(16,185,129,0.2)]">
                 <i class="fa-solid fa-check text-emerald-400 text-3xl"></i>
             </div>
             <h1 class="text-white font-bold text-2xl mb-1">Pesanan Diterima!</h1>
-            <p class="text-gray-400 text-sm">Silakan tunggu, pesanan kamu sedang disiapkan.</p>
+            <p class="text-gray-400 text-sm">Dapur kami sedang menyiapkan pesananmu.</p>
         </div>
 
         <div class="px-5 py-6">
+            
+            <div class="bg-gold/10 border border-gold/30 rounded-xl p-4 flex items-center gap-4 mb-6">
+                <div class="w-12 h-12 rounded-full bg-gold/20 flex items-center justify-center flex-shrink-0 animate-pulse">
+                    <i class="fa-solid fa-mobile-screen-button text-gold text-xl"></i>
+                </div>
+                <div>
+                    <p class="text-gold font-bold text-sm mb-0.5">Langkah Selanjutnya</p>
+                    <p class="text-gray-300 text-xs leading-relaxed">Segera tunjukkan layar ini ke kasir untuk melakukan pembayaran.</p>
+                </div>
+            </div>
+
             <div class="flex items-center justify-between bg-darkbg border border-gray-800 rounded-xl px-4 py-3 mb-5">
                 <div>
                     <p class="text-xs text-gray-500 font-bold uppercase tracking-widest mb-0.5">Kode Pesanan</p>
@@ -74,11 +86,6 @@
                     <span class="text-sm font-bold text-gray-400">Total Pembayaran</span>
                     <span class="text-xl font-bold text-gold">Rp <?= number_format($pesanan['total_harga'], 0, ',', '.') ?></span>
                 </div>
-            </div>
-
-            <div class="bg-btnbg border border-gray-700 rounded-xl p-4 flex items-start gap-3 text-xs text-gray-300">
-                <i class="fa-solid fa-circle-info mt-0.5 text-gold text-base flex-shrink-0"></i>
-                <span class="leading-relaxed">Pembayaran dilakukan secara <strong class="text-white">tunai ke kasir</strong> setelah pesanan selesai.</span>
             </div>
         </div>
     </div>
