@@ -29,11 +29,22 @@
         }
         .sidebar-scrollbar::-webkit-scrollbar { width: 4px; }
         .sidebar-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,.1); border-radius: 2px; }
+
+        #sidebar {
+            transition: transform .25s cubic-bezier(.4,0,.2,1);
+        }
+        #overlay {
+            transition: opacity .25s ease;
+        }
     </style>
 </head>
 <body class="bg-slate-100 text-slate-800 antialiased">
 
-<aside class="fixed top-0 left-0 h-screen w-64 bg-navy-900 flex flex-col z-30 sidebar-scrollbar overflow-y-auto">
+<div id="overlay" class="fixed inset-0 bg-black/50 z-20 hidden opacity-0 lg:hidden" onclick="closeSidebar()"></div>
+
+<aside id="sidebar"
+    class="fixed top-0 left-0 h-screen w-64 bg-navy-900 flex flex-col z-30 sidebar-scrollbar overflow-y-auto -translate-x-full lg:translate-x-0">
+
     <div class="px-5 py-5 border-b border-white/10 flex items-center gap-3">
         <div class="w-8 h-8 rounded-lg bg-sky-500 flex items-center justify-center flex-shrink-0">
             <i class="fa-solid fa-cash-register text-white text-sm"></i>
@@ -42,6 +53,9 @@
             <p class="text-white font-semibold text-sm leading-tight">ARZANA</p>
             <p class="text-slate-400 text-xs"><?= ucfirst(session()->get('role')) ?> Panel</p>
         </div>
+        <button onclick="closeSidebar()" class="ml-auto lg:hidden text-slate-400 hover:text-white">
+            <i class="fa-solid fa-xmark"></i>
+        </button>
     </div>
 
     <nav class="flex-1 px-3 py-4 space-y-0.5">
@@ -94,15 +108,24 @@
     </div>
 </aside>
 
-<div class="ml-64 min-h-screen flex flex-col">
-    <header class="sticky top-0 z-20 bg-white/90 backdrop-blur border-b border-slate-200 px-6 py-3.5 flex items-center justify-between">
-        <div class="flex items-center gap-2">
-            <div class="w-7 h-7 rounded-full bg-sky-100 flex items-center justify-center">
-                <i class="fa-solid fa-user text-sky-600 text-xs"></i>
+<div class="lg:ml-64 min-h-screen flex flex-col">
+    <header class="sticky top-0 z-20 bg-white/90 backdrop-blur border-b border-slate-200 px-4 lg:px-6 py-3.5 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+            <button onclick="openSidebar()"
+                class="lg:hidden w-8 h-8 flex items-center justify-center rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors">
+                <i class="fa-solid fa-bars text-sm"></i>
+            </button>
+            <div class="flex items-center gap-2">
+                <div class="w-7 h-7 rounded-full bg-sky-100 flex items-center justify-center">
+                    <i class="fa-solid fa-user text-sky-600 text-xs"></i>
+                </div>
+                <span class="text-sm font-medium text-slate-700 hidden sm:inline">
+                    Selamat datang, <span class="text-slate-900"><?= esc(session()->get('nama_lengkap')) ?></span>
+                </span>
+                <span class="text-sm font-medium text-slate-900 sm:hidden">
+                    <?= esc(session()->get('nama_lengkap')) ?>
+                </span>
             </div>
-            <span class="text-sm font-medium text-slate-700">
-                Selamat datang, <span class="text-slate-900"><?= esc(session()->get('nama_lengkap')) ?></span>
-            </span>
         </div>
         <div class="flex items-center gap-2">
             <span class="text-xs text-slate-400 bg-slate-100 px-2.5 py-1 rounded-full capitalize">
@@ -111,15 +134,39 @@
         </div>
     </header>
 
-    <main class="flex-1 p-6">
+    <main class="flex-1 p-4 lg:p-6">
         <?= $this->renderSection('content') ?>
     </main>
 
-    <footer class="px-6 py-3 border-t border-slate-200 bg-white">
+    <footer class="px-4 lg:px-6 py-3 border-t border-slate-200 bg-white">
         <p class="text-xs text-slate-400">&copy; <?= date('Y') ?> ARZANA. All rights reserved.</p>
     </footer>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    function openSidebar() {
+        const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('overlay');
+        sidebar.classList.remove('-translate-x-full');
+        overlay.classList.remove('hidden');
+        setTimeout(() => overlay.classList.remove('opacity-0'), 10);
+    }
+
+    function closeSidebar() {
+        const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('overlay');
+        sidebar.classList.add('-translate-x-full');
+        overlay.classList.add('opacity-0');
+        setTimeout(() => overlay.classList.add('hidden'), 250);
+    }
+
+    const current = window.location.pathname;
+    document.querySelectorAll('.nav-link').forEach(link => {
+        if (link.getAttribute('href') && current.includes(link.getAttribute('href').replace(window.location.origin, ''))) {
+            link.classList.add('active');
+        }
+    });
+</script>
+
 </body>
 </html>
