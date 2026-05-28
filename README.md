@@ -1,69 +1,146 @@
-# CodeIgniter 4 Application Starter
+# ARZANA — Sistem Pemesanan QR Code
 
-## What is CodeIgniter?
+Sistem pemesanan berbasis QR Code untuk restoran dan kafe, dibangun dengan CodeIgniter 4. Pelanggan cukup scan QR di meja, pilih menu, dan pesan — tanpa perlu antri ke kasir.
 
-CodeIgniter is a PHP full-stack web framework that is light, fast, flexible and secure.
-More information can be found at the [official site](https://codeigniter.com).
+![License](https://img.shields.io/badge/license-MIT-blue.svg)
+![CodeIgniter](https://img.shields.io/badge/CodeIgniter-4.x-orange.svg)
+![PHP](https://img.shields.io/badge/PHP-8.1%2B-purple.svg)
 
-This repository holds a composer-installable app starter.
-It has been built from the
-[development repository](https://github.com/codeigniter4/CodeIgniter4).
+---
 
-More information about the plans for version 4 can be found in [CodeIgniter 4](https://forum.codeigniter.com/forumdisplay.php?fid=28) on the forums.
+## Fitur
 
-You can read the [user guide](https://codeigniter.com/user_guide/)
-corresponding to the latest version of the framework.
+- **QR Code per meja** — setiap meja punya QR unik, scan langsung ke halaman menu
+- **Halaman menu publik** — dark theme, tanpa login, mobile-friendly
+- **Keranjang belanja** — berbasis localStorage, qty bisa diketik langsung
+- **Dashboard Admin** — kelola menu, kategori, meja, dan akun kasir
+- **Dashboard Kasir** — antrean pesanan real-time dengan notifikasi suara
+- **Riwayat transaksi** — rekap pesanan dan pendapatan harian
+- **Pembayaran tunai** — pelanggan bayar langsung ke kasir
 
-## Installation & updates
+---
 
-`composer create-project codeigniter4/appstarter` then `composer update` whenever
-there is a new release of the framework.
+## Teknologi
 
-When updating, check the release notes to see if there are any changes you might need to apply
-to your `app` folder. The affected files can be copied or merged from
-`vendor/codeigniter4/framework/app`.
+| Komponen | Detail |
+|---|---|
+| Backend | CodeIgniter 4 (PHP 8.1+) |
+| Frontend Admin | Tailwind CSS, Font Awesome 6 |
+| Frontend Pelanggan | Tailwind CSS, dark theme |
+| Database | MySQL / MariaDB |
+| QR Code | qrcodejs (client-side) |
 
-## Setup
+---
 
-Copy `env` to `.env` and tailor for your app, specifically the baseURL
-and any database settings.
+## Instalasi
 
-## Important Change with index.php
+### Prasyarat
+- PHP 8.1 atau lebih baru
+- MySQL / MariaDB
+- Composer
 
-`index.php` is no longer in the root of the project! It has been moved inside the *public* folder,
-for better security and separation of components.
+### Langkah
 
-This means that you should configure your web server to "point" to your project's *public* folder, and
-not to the project root. A better practice would be to configure a virtual host to point there. A poor practice would be to point your web server to the project root and expect to enter *public/...*, as the rest of your logic and the
-framework are exposed.
+**1. Clone repositori**
+```bash
+git clone https://github.com/username/arzana.git
+cd arzana
+```
 
-**Please** read the user guide for a better explanation of how CI4 works!
+**2. Install dependensi**
+```bash
+composer install
+```
 
-## Repository Management
+**3. Salin dan konfigurasi environment**
+```bash
+cp env .env
+```
 
-We use GitHub issues, in our main repository, to track **BUGS** and to track approved **DEVELOPMENT** work packages.
-We use our [forum](http://forum.codeigniter.com) to provide SUPPORT and to discuss
-FEATURE REQUESTS.
+Edit file `.env`:
+```
+CI_ENVIRONMENT = development
 
-This repository is a "distribution" one, built by our release preparation script.
-Problems with it can be raised on our forum, or as issues in the main repository.
+database.default.hostname = localhost
+database.default.database = arzana_db
+database.default.username = root
+database.default.password = 
+database.default.DBDriver = MySQLi
+```
 
-## Server Requirements
+**4. Buat database dan jalankan migrasi**
+```bash
+php spark migrate
+```
 
-PHP version 8.2 or higher is required, with the following extensions installed:
+**5. Buat folder upload**
+```bash
+mkdir -p public/uploads/menu
+chmod 775 public/uploads/menu
+```
 
-- [intl](http://php.net/manual/en/intl.requirements.php)
-- [mbstring](http://php.net/manual/en/mbstring.installation.php)
+**6. Jalankan server**
+```bash
+php spark serve
+```
 
-> [!WARNING]
-> - The end of life date for PHP 7.4 was November 28, 2022.
-> - The end of life date for PHP 8.0 was November 26, 2023.
-> - The end of life date for PHP 8.1 was December 31, 2025.
-> - If you are still using below PHP 8.2, you should upgrade immediately.
-> - The end of life date for PHP 8.2 will be December 31, 2026.
+Akses di `http://localhost:8080`
 
-Additionally, make sure that the following extensions are enabled in your PHP:
+---
 
-- json (enabled by default - don't turn it off)
-- [mysqlnd](http://php.net/manual/en/mysqlnd.install.php) if you plan to use MySQL
-- [libcurl](http://php.net/manual/en/curl.requirements.php) if you plan to use the HTTP\CURLRequest library
+## Struktur Route
+
+| Method | URL | Keterangan |
+|---|---|---|
+| GET | `/` | Halaman login |
+| GET | `/order/{kode}` | Halaman menu pelanggan (publik) |
+| GET | `/order/checkout/{kode}` | Halaman checkout |
+| POST | `/order/submit/{kode}` | Submit pesanan |
+| GET | `/admin/dashboard` | Dashboard admin |
+| GET | `/admin/menu` | Kelola menu |
+| GET | `/admin/kategori` | Kelola kategori |
+| GET | `/admin/meja` | Kelola meja & QR |
+| GET | `/kasir/dashboard` | Antrean pesanan kasir |
+
+---
+
+## Alur Penggunaan
+
+```
+Admin buat meja → Generate QR otomatis
+        ↓
+Pelanggan scan QR di meja
+        ↓
+Pilih menu → tambah ke keranjang
+        ↓
+Checkout → isi nama → kirim pesanan
+        ↓
+Kasir terima notifikasi → proses → selesai
+        ↓
+Pelanggan bayar tunai ke kasir
+```
+
+---
+
+## Akun Default
+
+Buat akun admin pertama melalui seeder atau langsung insert ke database:
+
+```sql
+INSERT INTO users (nama_lengkap, username, password, role) 
+VALUES ('Admin', 'admin', MD5('admin123'), 'admin');
+```
+
+> Ganti password setelah login pertama.
+
+---
+
+## Lisensi
+
+Proyek ini dirilis di bawah [MIT License](LICENSE). Bebas digunakan, dimodifikasi, dan didistribusikan — dengan tetap mencantumkan credit asli.
+
+---
+
+## Kontribusi
+
+Pull request dan issue sangat disambut. Kalau project ini membantu, beri bintang di GitHub.
