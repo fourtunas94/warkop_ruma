@@ -1,146 +1,214 @@
-# ARZANA — Sistem Pemesanan QR Code
+## Instalasi Project dari ZIP
 
-Sistem pemesanan berbasis QR Code untuk restoran dan kafe, dibangun dengan CodeIgniter 4. Pelanggan cukup scan QR di meja, pilih menu, dan pesan — tanpa perlu antri ke kasir.
+Project ARZANA didistribusikan dalam bentuk file ZIP. Setelah mendapatkan file ZIP dari member area atau admin, ikuti langkah berikut.
 
-![License](https://img.shields.io/badge/license-MIT-blue.svg)
-![CodeIgniter](https://img.shields.io/badge/CodeIgniter-4.x-orange.svg)
-![PHP](https://img.shields.io/badge/PHP-8.1%2B-purple.svg)
+### 1. Extract file ZIP
 
----
+Extract file project ke folder server lokal atau hosting.
 
-## Fitur
+Contoh untuk Laragon:
 
-- **QR Code per meja** — setiap meja punya QR unik, scan langsung ke halaman menu
-- **Halaman menu publik** — dark theme, tanpa login, mobile-friendly
-- **Keranjang belanja** — berbasis localStorage, qty bisa diketik langsung
-- **Dashboard Admin** — kelola menu, kategori, meja, dan akun kasir
-- **Dashboard Kasir** — antrean pesanan real-time dengan notifikasi suara
-- **Riwayat transaksi** — rekap pesanan dan pendapatan harian
-- **Pembayaran tunai** — pelanggan bayar langsung ke kasir
+```text
+C:\laragon\www\arzana
+```
 
----
+Contoh struktur folder setelah extract:
 
-## Teknologi
+```text
+arzana/
+├── app/
+├── public/
+├── system/
+├── writable/
+├── composer.json
+├── composer.lock
+├── spark
+└── env
+```
 
-| Komponen | Detail |
-|---|---|
-| Backend | CodeIgniter 4 (PHP 8.1+) |
-| Frontend Admin | Tailwind CSS, Font Awesome 6 |
-| Frontend Pelanggan | Tailwind CSS, dark theme |
-| Database | MySQL / MariaDB |
-| QR Code | qrcodejs (client-side) |
+### 2. Masuk ke folder project
 
----
-
-## Instalasi
-
-### Prasyarat
-- PHP 8.1 atau lebih baru
-- MySQL / MariaDB
-- Composer
-
-### Langkah
-
-**1. Clone repositori**
 ```bash
-git clone https://github.com/username/arzana.git
 cd arzana
 ```
 
-**2. Install dependensi**
+Jika menggunakan Laragon:
+
+```bash
+cd C:\laragon\www\arzana
+```
+
+### 3. Install dependensi Composer
+
 ```bash
 composer install
 ```
 
-**3. Salin dan konfigurasi environment**
+Jika package Midtrans belum ikut terinstall, jalankan:
+
+```bash
+composer require midtrans/midtrans-php
+```
+
+Lalu optimalkan autoload:
+
+```bash
+composer dump-autoload -o
+```
+
+### 4. Buat file `.env`
+
+Salin file `env` menjadi `.env`:
+
 ```bash
 cp env .env
 ```
 
-Edit file `.env`:
+Untuk Windows, bisa copy manual file `env`, lalu rename menjadi:
+
+```text
+.env
 ```
+
+### 5. Konfigurasi `.env`
+
+Edit file `.env`:
+
+```env
 CI_ENVIRONMENT = development
+
+app.baseURL = 'http://localhost:8080'
 
 database.default.hostname = localhost
 database.default.database = arzana_db
 database.default.username = root
-database.default.password = 
+database.default.password =
 database.default.DBDriver = MySQLi
+database.default.DBPrefix =
+database.default.port = 3306
+
+MIDTRANS_CLIENT_KEY=Mid-client-ISI_CLIENT_KEY_KAMU
+MIDTRANS_SERVER_KEY=Mid-server-ISI_SERVER_KEY_KAMU
+MIDTRANS_IS_PRODUCTION=false
 ```
 
-**4. Buat database dan jalankan migrasi**
+Jika digunakan di hosting, ubah `app.baseURL` menjadi domain aktif:
+
+```env
+app.baseURL = 'https://domain-kamu.com'
+```
+
+Contoh:
+
+```env
+app.baseURL = 'https://pro.arzana.kitangoding.com'
+```
+
+### 6. Buat database
+
+Buat database baru di MySQL/MariaDB, misalnya:
+
+```text
+arzana_db
+```
+
+Lalu sesuaikan nama database di file `.env`.
+
+### 7. Jalankan migrasi
+
 ```bash
 php spark migrate
 ```
 
-**5. Buat folder upload**
+Jika project menyediakan seeder, jalankan seeder sesuai nama yang tersedia:
+
+```bash
+php spark db:seed NamaSeeder
+```
+
+### 8. Buat folder upload
+
 ```bash
 mkdir -p public/uploads/menu
 chmod 775 public/uploads/menu
 ```
 
-**6. Jalankan server**
+Untuk Windows/Laragon, cukup pastikan folder ini ada:
+
+```text
+public/uploads/menu
+```
+
+### 9. Jalankan project
+
 ```bash
 php spark serve
 ```
 
-Akses di `http://localhost:8080`
+Akses project di:
 
----
-
-## Struktur Route
-
-| Method | URL | Keterangan |
-|---|---|---|
-| GET | `/` | Halaman login |
-| GET | `/order/{kode}` | Halaman menu pelanggan (publik) |
-| GET | `/order/checkout/{kode}` | Halaman checkout |
-| POST | `/order/submit/{kode}` | Submit pesanan |
-| GET | `/admin/dashboard` | Dashboard admin |
-| GET | `/admin/menu` | Kelola menu |
-| GET | `/admin/kategori` | Kelola kategori |
-| GET | `/admin/meja` | Kelola meja & QR |
-| GET | `/kasir/dashboard` | Antrean pesanan kasir |
-
----
-
-## Alur Penggunaan
-
-```
-Admin buat meja → Generate QR otomatis
-        ↓
-Pelanggan scan QR di meja
-        ↓
-Pilih menu → tambah ke keranjang
-        ↓
-Checkout → isi nama → kirim pesanan
-        ↓
-Kasir terima notifikasi → proses → selesai
-        ↓
-Pelanggan bayar tunai ke kasir
+```text
+http://localhost:8080
 ```
 
 ---
 
-## Akun Default
+## Catatan Distribusi ZIP
 
-Buat akun admin pertama melalui seeder atau langsung insert ke database:
+Untuk keamanan, file ZIP yang dibagikan ke member sebaiknya **tidak menyertakan file `.env` asli** yang berisi key rahasia.
 
-```sql
-INSERT INTO users (nama_lengkap, username, password, role) 
-VALUES ('Admin', 'admin', MD5('admin123'), 'admin');
+Yang aman disertakan:
+
+```text
+env
+composer.json
+composer.lock
+app/
+public/
+system/
+writable/
+spark
 ```
 
-> Ganti password setelah login pertama.
+Yang sebaiknya tidak disertakan:
+
+```text
+.env
+writable/logs/*
+writable/cache/*
+database backup pribadi
+key production Midtrans
+```
+
+Member perlu mengisi sendiri konfigurasi database dan key Midtrans di file `.env`.
 
 ---
 
-## Lisensi
+## Support
 
-Proyek ini dirilis di bawah [MIT License](LICENSE). Bebas digunakan, dimodifikasi, dan didistribusikan — dengan tetap mencantumkan credit asli.
+Jika mengalami kendala instalasi, pastikan beberapa hal berikut:
+
+1. Versi PHP minimal 8.1.
+2. Composer sudah terinstall.
+3. Database sudah dibuat.
+4. File `.env` sudah dikonfigurasi.
+5. `app.baseURL` sudah sesuai domain.
+6. Package Midtrans sudah terinstall.
+7. Folder `writable` memiliki permission yang benar.
+8. Payment Notification URL Midtrans sudah diarahkan ke:
+
+```text
+https://domain-kamu.com/order/midtrans-notification
+```
 
 ---
 
-## Kontribusi
+## Lisensi Penggunaan
 
-Pull request dan issue sangat disambut. Kalau project ini membantu, beri bintang di GitHub.
+Project ini boleh digunakan dan dimodifikasi oleh member sesuai ketentuan pembelian atau lisensi yang diberikan oleh pemilik project.
+
+Dilarang membagikan ulang, menjual ulang, atau mendistribusikan ulang source code tanpa izin dari pemilik project.
+
+
+
+link simulator : https://simulator.sandbox.midtrans.com/

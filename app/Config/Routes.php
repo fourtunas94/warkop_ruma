@@ -50,6 +50,10 @@ $routes->group('admin', ['filter' => 'role:admin'], function($routes) {
 
     // Riwayat
     $routes->get('riwayat',                 'Admin\Riwayat::index');
+
+    // Pengaturan
+    $routes->get('pengaturan',        'Admin\Pengaturan::index');
+    $routes->post('pengaturan/update', 'Admin\Pengaturan::update');
 });
 
 $routes->group('kasir', ['filter' => 'role:kasir'], function($routes) {

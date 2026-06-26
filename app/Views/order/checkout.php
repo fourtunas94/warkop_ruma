@@ -1,166 +1,352 @@
+<?php
+helper('app_setting');
+
+$storeName        = app_setting('store_name', 'ARZANA');
+$storeLogo        = app_setting('store_logo', '');
+$storeFavicon     = app_setting('store_favicon', '');
+$storeDescription = app_setting('store_description', 'Konfirmasi pesanan Anda sebelum dikirim ke kasir.');
+
+$logoSrc = ! empty($storeLogo)
+    ? base_url($storeLogo)
+    : base_url('assets/img/logo_k.png');
+
+$faviconPath = ! empty($storeFavicon)
+    ? $storeFavicon
+    : (! empty($storeLogo) ? $storeLogo : 'assets/img/logo_k.png');
+
+$faviconSrc = base_url($faviconPath);
+
+$nomorMeja = $meja['nomor_meja'] ?? '-';
+$kodeMeja  = $meja['kode_unik'] ?? '';
+?>
+
 <!DOCTYPE html>
 <html lang="id">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Checkout — ARZANA</title>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <title>Checkout Meja <?= esc($nomorMeja) ?> — <?= esc($storeName) ?></title>
+
+    <link rel="icon" type="image/png" href="<?= esc($faviconSrc) ?>">
+
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-    
+
     <style>
         :root {
-            --bg-dark: #0a0e17;
-            --card-dark: #131824;
-            --text-light: #ffffff;
-            --text-dim: #8a94a6;
-            --btn-blue: #0066ff;
-            --border-color: rgba(255, 255, 255, 0.05);
-            --cart-grad: linear-gradient(90deg, #007bff, #8a2be2);
-            --success-color: #10b981;
-            --danger-color: #ef4444;
+            --bg: #020617;
+            --bg-soft: #07111f;
+            --card: rgba(255, 255, 255, .055);
+            --card-strong: rgba(255, 255, 255, .08);
+            --border: rgba(255, 255, 255, .10);
+            --text: #ffffff;
+            --muted: #94a3b8;
+            --muted-2: #64748b;
+            --sky: #0ea5e9;
+            --purple: #7c3aed;
+            --rose: #f43f5e;
+            --emerald: #22c55e;
+            --amber: #f59e0b;
+            --gradient: linear-gradient(135deg, #0ea5e9, #7c3aed);
+            --shadow: 0 20px 60px rgba(0, 0, 0, .38);
         }
 
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: 'Poppins', sans-serif;
+            font-family: 'Plus Jakarta Sans', sans-serif;
         }
 
         body {
-            background-color: var(--bg-dark);
-            color: var(--text-light);
-            -webkit-font-smoothing: antialiased;
             min-height: 100vh;
+            background:
+                radial-gradient(circle at top left, rgba(14, 165, 233, .22), transparent 24rem),
+                radial-gradient(circle at top right, rgba(124, 58, 237, .20), transparent 24rem),
+                linear-gradient(135deg, #020617 0%, #07111f 48%, #020617 100%);
+            color: var(--text);
+            -webkit-font-smoothing: antialiased;
+            padding-bottom: 112px;
         }
 
-        .app-container {
-            max-width: 480px;
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            background-image:
+                linear-gradient(rgba(255,255,255,.025) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,255,255,.025) 1px, transparent 1px);
+            background-size: 42px 42px;
+            mask-image: linear-gradient(to bottom, rgba(0,0,0,.9), rgba(0,0,0,.18));
+            z-index: 0;
+        }
+
+        button,
+        a,
+        input,
+        textarea,
+        label {
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .app {
+            width: 100%;
+            max-width: 520px;
             margin: 0 auto;
             position: relative;
-            padding-bottom: 120px;
+            z-index: 1;
         }
 
-        /* --- Header --- */
         .header {
             position: sticky;
             top: 0;
             z-index: 30;
-            background-color: var(--bg-dark);
-            padding: 16px 20px;
+            padding: 16px;
+            background: rgba(2, 6, 23, .76);
+            backdrop-filter: blur(18px);
+            -webkit-backdrop-filter: blur(18px);
+            border-bottom: 1px solid rgba(255,255,255,.08);
             display: flex;
             align-items: center;
-            gap: 16px;
-            border-bottom: 1px solid var(--border-color);
+            gap: 13px;
         }
 
         .btn-back {
-            width: 40px;
-            height: 40px;
-            background-color: var(--card-dark);
-            border-radius: 12px;
+            width: 43px;
+            height: 43px;
+            border-radius: 17px;
+            background: rgba(255,255,255,.055);
+            border: 1px solid rgba(255,255,255,.10);
+            color: var(--muted);
             display: flex;
-            justify-content: center;
             align-items: center;
-            color: var(--text-dim);
+            justify-content: center;
             text-decoration: none;
-            border: 1px solid var(--border-color);
-            transition: 0.2s;
+            flex-shrink: 0;
+            transition: .2s ease;
         }
 
         .btn-back:hover {
-            color: var(--text-light);
-            background-color: #1a2235;
+            background: rgba(255,255,255,.10);
+            color: #fff;
+        }
+
+        .brand-mini {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            min-width: 0;
+        }
+
+        .logo-box {
+            width: 42px;
+            height: 42px;
+            border-radius: 16px;
+            background: rgba(255,255,255,.06);
+            border: 1px solid rgba(255,255,255,.10);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+
+        .logo-box img {
+            width: 34px;
+            height: 34px;
+            object-fit: contain;
+        }
+
+        .logo-fallback {
+            display: none;
+            width: 34px;
+            height: 34px;
+            border-radius: 13px;
+            background: var(--gradient);
+            align-items: center;
+            justify-content: center;
+            color: white;
+        }
+
+        .header-title {
+            min-width: 0;
         }
 
         .header-title h1 {
             font-size: 16px;
-            font-weight: 600;
+            font-weight: 900;
+            color: #fff;
+            line-height: 1.2;
         }
 
         .header-title p {
             font-size: 12px;
-            color: var(--text-dim);
+            color: var(--muted);
+            margin-top: 3px;
         }
 
         .header-title p span {
-            color: #FDE047;
-            font-weight: 600;
+            color: #fde047;
+            font-weight: 900;
         }
 
-        /* --- Main Content --- */
-        .main-content {
-            padding: 20px;
+        .main {
+            padding: 18px 16px 0;
+        }
+
+        .hero-card {
+            position: relative;
+            overflow: hidden;
+            border-radius: 28px;
+            background: rgba(255,255,255,.045);
+            border: 1px solid rgba(255,255,255,.10);
+            box-shadow: var(--shadow);
+            padding: 18px;
+            margin-bottom: 16px;
+        }
+
+        .hero-card::before {
+            content: '';
+            position: absolute;
+            right: -60px;
+            top: -70px;
+            width: 180px;
+            height: 180px;
+            background: rgba(14,165,233,.22);
+            filter: blur(38px);
+            border-radius: 50%;
+        }
+
+        .hero-card::after {
+            content: '';
+            position: absolute;
+            left: -80px;
+            bottom: -80px;
+            width: 200px;
+            height: 200px;
+            background: rgba(124,58,237,.18);
+            filter: blur(42px);
+            border-radius: 50%;
+        }
+
+        .hero-content {
+            position: relative;
+            z-index: 1;
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            padding: 7px 11px;
+            border-radius: 999px;
+            background: rgba(14,165,233,.10);
+            border: 1px solid rgba(14,165,233,.22);
+            color: #7dd3fc;
+            font-size: 11px;
+            font-weight: 900;
+            margin-bottom: 12px;
+        }
+
+        .hero-title {
+            font-size: 23px;
+            line-height: 1.18;
+            font-weight: 900;
+            letter-spacing: -.04em;
+            color: #fff;
+        }
+
+        .hero-desc {
+            font-size: 13px;
+            line-height: 1.6;
+            color: var(--muted);
+            margin-top: 8px;
         }
 
         .section-card {
-            background-color: var(--card-dark);
-            border-radius: 16px;
-            padding: 20px;
-            margin-bottom: 20px;
-            border: 1px solid var(--border-color);
+            background: rgba(255,255,255,.045);
+            border: 1px solid rgba(255,255,255,.10);
+            border-radius: 26px;
+            padding: 18px;
+            margin-bottom: 16px;
+            box-shadow: 0 18px 46px rgba(0,0,0,.22);
         }
 
         .section-title {
             font-size: 14px;
-            font-weight: 600;
+            font-weight: 900;
             margin-bottom: 16px;
+            color: #fff;
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 9px;
         }
 
         .section-title i {
-            color: var(--btn-blue);
+            width: 34px;
+            height: 34px;
+            border-radius: 14px;
+            background: rgba(14,165,233,.10);
+            border: 1px solid rgba(14,165,233,.20);
+            color: #7dd3fc;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
         }
 
-        /* --- Order List --- */
         .order-item {
             display: flex;
             justify-content: space-between;
-            align-items: center;
-            padding: 12px 0;
-            border-bottom: 1px dashed rgba(255, 255, 255, 0.1);
+            align-items: flex-start;
+            gap: 14px;
+            padding: 13px 0;
+            border-bottom: 1px dashed rgba(255,255,255,.12);
         }
 
         .order-item:last-child {
-            border-bottom: none;
+            border-bottom: 0;
         }
 
         .item-info h4 {
             font-size: 13px;
-            font-weight: 500;
-            color: var(--text-light);
+            font-weight: 800;
+            color: #fff;
+            line-height: 1.35;
         }
 
         .item-info p {
             font-size: 12px;
-            color: var(--btn-blue);
-            font-weight: 600;
+            color: #7dd3fc;
+            font-weight: 900;
             margin-top: 4px;
         }
 
         .item-price {
-            font-size: 14px;
-            font-weight: 600;
+            font-size: 13px;
+            font-weight: 900;
+            color: #fff;
+            white-space: nowrap;
         }
 
         .order-summary {
             margin-top: 16px;
             padding-top: 16px;
-            border-top: 1px solid var(--border-color);
+            border-top: 1px solid rgba(255,255,255,.10);
         }
 
         .summary-row {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 8px;
+            margin-bottom: 9px;
             font-size: 13px;
+            color: var(--muted);
         }
 
         .summary-row.promo {
-            color: var(--success-color);
+            color: #86efac;
             display: none;
         }
 
@@ -173,55 +359,153 @@
             justify-content: space-between;
             align-items: center;
             margin-top: 12px;
-            padding-top: 12px;
-            border-top: 1px solid var(--border-color);
+            padding-top: 14px;
+            border-top: 1px solid rgba(255,255,255,.10);
         }
 
         .summary-total span {
-            font-size: 14px;
-            font-weight: 500;
-            color: var(--text-dim);
+            font-size: 13px;
+            font-weight: 800;
+            color: var(--muted);
         }
 
         .summary-total strong {
-            font-size: 18px;
-            font-weight: 700;
-            color: var(--btn-blue);
+            font-size: 20px;
+            font-weight: 900;
+            color: #fff;
         }
 
-        /* --- Forms --- */
+        .payment-options {
+            display: grid;
+            gap: 11px;
+        }
+
+        .pay-option {
+            position: relative;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px;
+            border-radius: 20px;
+            background: rgba(2,6,23,.48);
+            border: 1px solid rgba(255,255,255,.10);
+            cursor: pointer;
+            transition: .2s ease;
+        }
+
+        .pay-option:hover,
+        .pay-option:has(input:checked) {
+            background: rgba(255,255,255,.07);
+            border-color: rgba(14,165,233,.35);
+            box-shadow: 0 0 0 1px rgba(14,165,233,.12);
+        }
+
+        .pay-option input[type="radio"] {
+            display: none;
+        }
+
+        .pay-radio {
+            width: 18px;
+            height: 18px;
+            border-radius: 999px;
+            border: 2px solid #64748b;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .pay-radio::after {
+            content: '';
+            width: 8px;
+            height: 8px;
+            border-radius: 999px;
+            background: transparent;
+        }
+
+        .pay-option input[type="radio"]:checked + .pay-radio {
+            border-color: #38bdf8;
+        }
+
+        .pay-option input[type="radio"]:checked + .pay-radio::after {
+            background: #38bdf8;
+        }
+
+        .pay-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 16px;
+            background: rgba(255,255,255,.045);
+            border: 1px solid rgba(255,255,255,.08);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--muted);
+            flex-shrink: 0;
+        }
+
+        .pay-option input[type="radio"]:checked ~ .pay-icon {
+            color: #7dd3fc;
+            background: rgba(14,165,233,.10);
+            border-color: rgba(14,165,233,.20);
+        }
+
+        .pay-info span {
+            display: block;
+            font-size: 13px;
+            font-weight: 900;
+            color: #fff;
+        }
+
+        .pay-info small {
+            display: block;
+            font-size: 11px;
+            color: var(--muted-2);
+            margin-top: 3px;
+            line-height: 1.35;
+        }
+
         .form-group {
-            margin-bottom: 16px;
+            margin-bottom: 15px;
+        }
+
+        .form-group:last-child {
+            margin-bottom: 0;
         }
 
         .form-group label {
             display: block;
             font-size: 11px;
-            font-weight: 600;
-            color: var(--text-dim);
+            font-weight: 900;
+            color: var(--muted);
             text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 8px;
+            letter-spacing: .12em;
+            margin-bottom: 9px;
         }
 
         .form-group label span {
-            color: var(--danger-color);
+            color: var(--rose);
         }
 
         .form-control {
             width: 100%;
-            background-color: var(--bg-dark);
-            border: 1px solid var(--border-color);
-            color: var(--text-light);
-            border-radius: 12px;
-            padding: 14px 16px;
+            background: rgba(2,6,23,.56);
+            border: 1px solid rgba(255,255,255,.10);
+            color: #fff;
+            border-radius: 18px;
+            padding: 14px 15px;
             font-size: 13px;
-            transition: 0.2s;
+            outline: none;
+            transition: .2s ease;
+        }
+
+        .form-control::placeholder {
+            color: #475569;
         }
 
         .form-control:focus {
-            outline: none;
-            border-color: var(--btn-blue);
+            border-color: rgba(14,165,233,.55);
+            box-shadow: 0 0 0 4px rgba(14,165,233,.10);
         }
 
         textarea.form-control {
@@ -233,225 +517,257 @@
             gap: 10px;
         }
 
+        .promo-wrap .form-control {
+            text-transform: uppercase;
+        }
+
         .btn-promo {
-            background-color: #1e2538;
-            color: var(--text-light);
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            padding: 0 20px;
+            border: 1px solid rgba(14,165,233,.22);
+            background: rgba(14,165,233,.10);
+            color: #7dd3fc;
+            border-radius: 18px;
+            padding: 0 18px;
             font-size: 12px;
-            font-weight: 600;
+            font-weight: 900;
             cursor: pointer;
-            transition: 0.2s;
+            transition: .2s ease;
+            white-space: nowrap;
         }
 
         .btn-promo:hover {
-            background-color: var(--btn-blue);
-            border-color: var(--btn-blue);
+            background: rgba(14,165,233,.18);
+            color: #fff;
         }
 
         .promo-msg {
             font-size: 11px;
-            font-weight: 600;
+            font-weight: 800;
             margin-top: 8px;
             display: none;
         }
 
-        /* --- Metode Pembayaran (Baru) --- */
-        .payment-options {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 12px;
-        }
-
-        .pay-option {
-            display: flex;
-            align-items: center;
-            padding: 14px 16px;
-            background-color: var(--bg-dark);
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .pay-option:hover {
-            border-color: rgba(255, 255, 255, 0.2);
-        }
-
-        .pay-option input[type="radio"] {
-            display: none;
-        }
-
-        .pay-radio-custom {
-            width: 18px;
-            height: 18px;
-            border: 2px solid var(--text-dim);
-            border-radius: 50%;
-            margin-right: 12px;
-            position: relative;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-
-        .pay-option input[type="radio"]:checked + .pay-radio-custom {
-            border-color: var(--btn-blue);
-        }
-
-        .pay-option input[type="radio"]:checked + .pay-radio-custom::after {
-            content: '';
-            width: 8px;
-            height: 8px;
-            background-color: var(--btn-blue);
-            border-radius: 50%;
-        }
-
-        .pay-info {
-            display: flex;
-            flex-direction: column;
-        }
-
-        .pay-info span {
-            font-size: 13px;
-            font-weight: 600;
-        }
-
-        .pay-info small {
-            font-size: 11px;
-            color: var(--text-dim);
-            margin-top: 2px;
-        }
-
-        /* --- Bottom Fixed Bar --- */
         .bottom-action {
             position: fixed;
-            bottom: 0;
             left: 0;
             right: 0;
-            background-color: var(--card-dark);
-            padding: 16px 20px;
-            border-top: 1px solid var(--border-color);
+            bottom: 0;
             z-index: 40;
             display: flex;
             justify-content: center;
+            padding: 14px 16px 18px;
+            background: rgba(2,6,23,.82);
+            backdrop-filter: blur(18px);
+            -webkit-backdrop-filter: blur(18px);
+            border-top: 1px solid rgba(255,255,255,.08);
         }
 
         .bottom-action-inner {
             width: 100%;
-            max-width: 440px;
+            max-width: 488px;
         }
 
         .btn-submit {
             width: 100%;
-            background: var(--cart-grad);
-            color: white;
-            border: none;
-            border-radius: 14px;
+            border: 0;
+            border-radius: 22px;
+            background: var(--gradient);
+            color: #fff;
             padding: 16px;
             font-size: 14px;
-            font-weight: 600;
+            font-weight: 900;
             display: flex;
             justify-content: center;
             align-items: center;
             gap: 10px;
             cursor: pointer;
-            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
-            transition: transform 0.1s;
+            box-shadow: 0 20px 50px rgba(14,165,233,.25), 0 10px 34px rgba(0,0,0,.50);
+            transition: transform .15s ease, opacity .15s ease;
         }
 
         .btn-submit:active {
-            transform: scale(0.98);
+            transform: scale(.98);
         }
 
         .btn-submit:disabled {
-            background: #333;
-            color: #888;
+            background: rgba(255,255,255,.08);
+            color: #64748b;
             box-shadow: none;
             cursor: not-allowed;
         }
 
-        /* Error Toast */
-        #error-msg {
+        .toast {
             position: fixed;
-            top: 20px;
             left: 50%;
-            transform: translateX(-50%);
-            background-color: var(--danger-color);
-            color: white;
-            padding: 12px 20px;
-            border-radius: 10px;
-            font-size: 13px;
-            font-weight: 600;
+            top: 18px;
+            transform: translateX(-50%) translateY(-20px);
+            opacity: 0;
+            pointer-events: none;
             z-index: 100;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
-            display: none;
+            width: calc(100% - 32px);
+            max-width: 488px;
+            border-radius: 18px;
+            background: rgba(244,63,94,.94);
+            border: 1px solid rgba(255,255,255,.12);
+            box-shadow: 0 18px 48px rgba(0,0,0,.35);
+            padding: 12px 14px;
+            color: #fff;
+            font-size: 12px;
+            font-weight: 800;
+            transition: .22s ease;
         }
 
-        /* Empty State */
+        .toast.show {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+        }
+
         .empty-state {
-            text-align: center;
-            padding: 60px 20px;
             display: none;
+            text-align: center;
+            padding: 54px 18px;
+            border-radius: 28px;
+            background: rgba(255,255,255,.045);
+            border: 1px solid rgba(255,255,255,.10);
+            box-shadow: var(--shadow);
         }
 
         .empty-state i {
-            font-size: 48px;
-            color: var(--text-dim);
-            margin-bottom: 16px;
+            font-size: 42px;
+            color: #475569;
+            margin-bottom: 14px;
+        }
+
+        .empty-state h2 {
+            font-size: 18px;
+            font-weight: 900;
+            color: #fff;
+            margin-bottom: 6px;
         }
 
         .empty-state p {
-            color: var(--text-dim);
-            margin-bottom: 20px;
+            font-size: 13px;
+            color: var(--muted);
+            line-height: 1.5;
+            margin-bottom: 18px;
         }
 
         .btn-outline {
-            display: inline-block;
-            border: 1px solid var(--btn-blue);
-            color: var(--btn-blue);
-            padding: 10px 24px;
-            border-radius: 10px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
             text-decoration: none;
+            border: 1px solid rgba(14,165,233,.22);
+            color: #7dd3fc;
+            background: rgba(14,165,233,.10);
+            padding: 12px 18px;
+            border-radius: 18px;
             font-size: 13px;
-            font-weight: 600;
+            font-weight: 900;
+        }
+
+        @media (max-width: 380px) {
+            .main {
+                padding-inline: 12px;
+            }
+
+            .header {
+                padding-inline: 12px;
+            }
+
+            .hero-title {
+                font-size: 21px;
+            }
+
+            .section-card {
+                padding: 15px;
+            }
+
+            .pay-option {
+                padding: 12px;
+            }
+
+            .pay-icon {
+                width: 36px;
+                height: 36px;
+                border-radius: 14px;
+            }
         }
     </style>
 </head>
+
 <body>
 
-<div class="app-container">
-    
-    <div id="error-msg">Pesan error disini</div>
+<div class="app">
+
+    <div id="error-msg" class="toast">Pesan error</div>
 
     <header class="header">
-        <a href="javascript:history.back()" class="btn-back">
+        <a href="javascript:history.back()" class="btn-back" aria-label="Kembali">
             <i class="fa-solid fa-arrow-left"></i>
         </a>
-        <div class="header-title">
-            <h1>Konfirmasi Pesanan</h1>
-            <p>Meja <span><?= esc($meja['nomor_meja']) ?></span></p>
+
+        <div class="brand-mini">
+            <div class="logo-box">
+                <img src="<?= esc($logoSrc) ?>"
+                     alt="Logo <?= esc($storeName) ?>"
+                     onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+
+                <div class="logo-fallback">
+                    <i class="fa-solid fa-store"></i>
+                </div>
+            </div>
+
+            <div class="header-title">
+                <h1>Konfirmasi Pesanan</h1>
+                <p>Meja <span><?= esc($nomorMeja) ?></span> — <?= esc($storeName) ?></p>
+            </div>
         </div>
     </header>
 
-    <main class="main-content">
-        
+    <main class="main">
+
         <div id="empty-state" class="empty-state">
             <i class="fa-solid fa-cart-arrow-down"></i>
-            <p>Keranjang kamu masih kosong nih.</p>
-            <a href="javascript:history.back()" class="btn-outline">Kembali ke Menu</a>
+            <h2>Keranjang kosong</h2>
+            <p>Belum ada menu yang dipilih. Silakan kembali ke halaman menu dan pilih pesanan dulu.</p>
+            <a href="<?= base_url('order/' . $kodeMeja) ?>" class="btn-outline">
+                <i class="fa-solid fa-arrow-left"></i>
+                Kembali ke Menu
+            </a>
         </div>
 
         <div id="checkout-content">
+            <section class="hero-card">
+                <div class="hero-content">
+                    <div class="badge">
+                        <i class="fa-solid fa-clipboard-check"></i>
+                        Checkout
+                    </div>
+
+                    <h2 class="hero-title">
+                        Cek pesananmu sebelum dikirim
+                    </h2>
+
+                    <p class="hero-desc">
+                        <?= esc($storeDescription ?: 'Pastikan menu, nama pemesan, dan metode pembayaran sudah benar sebelum pesanan dikirim ke kasir.') ?>
+                    </p>
+                </div>
+            </section>
+
             <section class="section-card">
-                <h3 class="section-title"><i class="fa-solid fa-clipboard-list"></i> Pesanan Kamu</h3>
+                <h3 class="section-title">
+                    <i class="fa-solid fa-clipboard-list"></i>
+                    Pesanan Kamu
+                </h3>
+
                 <div id="order-list"></div>
-                
+
                 <div class="order-summary">
                     <div id="row-promo" class="summary-row promo">
-                        <span>Potongan (Promo)</span>
+                        <span>Potongan Promo</span>
                         <span id="promo-val">-Rp 0</span>
                     </div>
+
                     <div class="summary-total">
                         <span>Total Pembayaran</span>
                         <strong id="order-total">Rp 0</strong>
@@ -460,52 +776,70 @@
             </section>
 
             <section class="section-card">
-                <h3 class="section-title"><i class="fa-solid fa-wallet"></i> Metode Pembayaran</h3>
+                <h3 class="section-title">
+                    <i class="fa-solid fa-wallet"></i>
+                    Metode Pembayaran
+                </h3>
+
                 <div class="payment-options">
                     <label class="pay-option">
                         <input type="radio" name="payment_method" value="tunai" checked>
-                        <div class="pay-radio-custom"></div>
+                        <div class="pay-radio"></div>
+                        <div class="pay-icon">
+                            <i class="fa-solid fa-money-bill-wave"></i>
+                        </div>
                         <div class="pay-info">
-                            <span>Tunai ke Kasir</span>
-                            <small>Bayar langsung di meja kasir</small>
+                            <span>Tunai / COD</span>
+                            <small>Bayar langsung ke kasir. Pesanan diproses setelah pembayaran diterima.</small>
                         </div>
                     </label>
+
                     <label class="pay-option">
                         <input type="radio" name="payment_method" value="qris">
-                        <div class="pay-radio-custom"></div>
+                        <div class="pay-radio"></div>
+                        <div class="pay-icon">
+                            <i class="fa-solid fa-qrcode"></i>
+                        </div>
                         <div class="pay-info">
                             <span>QRIS / E-Wallet</span>
-                            <small>Gopay, OVO, Dana, ShopeePay</small>
+                            <small>Bayar online melalui Midtrans Snap.</small>
                         </div>
                     </label>
+
                     <label class="pay-option">
                         <input type="radio" name="payment_method" value="transfer">
-                        <div class="pay-radio-custom"></div>
+                        <div class="pay-radio"></div>
+                        <div class="pay-icon">
+                            <i class="fa-solid fa-building-columns"></i>
+                        </div>
                         <div class="pay-info">
-                            <span>Transfer Bank</span>
-                            <small>Virtual Account BCA, Mandiri, BNI</small>
+                            <span>Transfer Bank / VA</span>
+                            <small>Virtual Account BCA, BNI, BRI, Permata, dan bank lain.</small>
                         </div>
                     </label>
                 </div>
             </section>
 
             <section class="section-card">
-                <h3 class="section-title"><i class="fa-solid fa-user-pen"></i> Data Pemesan</h3>
-                
+                <h3 class="section-title">
+                    <i class="fa-solid fa-user-pen"></i>
+                    Data Pemesan
+                </h3>
+
                 <div class="form-group">
                     <label>Nama Kamu <span>*</span></label>
                     <input type="text" id="nama_pemesan" class="form-control" placeholder="Masukkan nama kamu">
                 </div>
-                
+
                 <div class="form-group">
-                    <label>Catatan (opsional)</label>
-                    <textarea id="catatan" rows="2" class="form-control" placeholder="Misal: tidak pakai pedas, es dipisah"></textarea>
+                    <label>Catatan</label>
+                    <textarea id="catatan" rows="3" class="form-control" placeholder="Misal: tidak pakai pedas, es dipisah"></textarea>
                 </div>
-                
+
                 <div class="form-group">
                     <label>Kode Promo</label>
                     <div class="promo-wrap">
-                        <input type="text" id="kode_promo" class="form-control uppercase" placeholder="Masukkan kode">
+                        <input type="text" id="kode_promo" class="form-control" placeholder="Masukkan kode">
                         <button type="button" onclick="cekPromo()" class="btn-promo">Pakai</button>
                     </div>
                     <p id="promo-info" class="promo-msg"></p>
@@ -514,30 +848,58 @@
         </div>
     </main>
 
-    <div class="bottom-action">
-        <div class="bottom-action-inner">
-            <button id="btn-pesan" onclick="submitOrder()" class="btn-submit">
-                <i class="fa-solid fa-paper-plane"></i> Kirim Pesanan Sekarang
-            </button>
-        </div>
+</div>
+
+<div class="bottom-action">
+    <div class="bottom-action-inner">
+        <button id="btn-pesan" onclick="submitOrder()" class="btn-submit">
+            <i class="fa-solid fa-paper-plane"></i>
+            Kirim Pesanan Sekarang
+        </button>
     </div>
 </div>
 
 <script>
-    const KODE_MEJA  = '<?= esc($meja['kode_unik']) ?>';
-    const SUBMIT_URL = '<?= base_url('order/submit/' . $meja['kode_unik']) ?>';
-    const cart       = JSON.parse(localStorage.getItem('arzana_cart_' + KODE_MEJA) || '[]');
+    const KODE_MEJA  = <?= json_encode($kodeMeja) ?>;
+    const SUBMIT_URL = <?= json_encode(base_url('order/submit/' . $kodeMeja)) ?>;
+    const MENU_URL   = <?= json_encode(base_url('order/' . $kodeMeja)) ?>;
+
+    const cart = JSON.parse(localStorage.getItem('arzana_cart_' + KODE_MEJA) || '[]');
 
     let potongan  = 0;
     let kodeValid = '';
 
     function formatRupiah(number) {
-        return number.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+        return Number(number || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    }
+
+    function escapeHTML(value) {
+        return String(value ?? '').replace(/[&<>"']/g, function(match) {
+            return ({
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;'
+            })[match];
+        });
+    }
+
+    function showError(msg) {
+        const el = document.getElementById('error-msg');
+
+        el.textContent = msg;
+        el.classList.add('show');
+
+        clearTimeout(window.__errorTimer);
+        window.__errorTimer = setTimeout(() => {
+            el.classList.remove('show');
+        }, 3500);
     }
 
     function cekPromo() {
-        const input   = document.getElementById('kode_promo').value.trim().toUpperCase();
-        const info    = document.getElementById('promo-info');
+        const input    = document.getElementById('kode_promo').value.trim().toUpperCase();
+        const info     = document.getElementById('promo-info');
         const rowPromo = document.getElementById('row-promo');
 
         info.style.display = 'block';
@@ -545,27 +907,32 @@
         if (input === '') {
             potongan  = 0;
             kodeValid = '';
-            info.textContent  = 'Masukkan kode promo terlebih dahulu.';
-            info.style.color  = 'var(--danger-color)';
+
+            info.textContent = 'Masukkan kode promo terlebih dahulu.';
+            info.style.color = 'var(--rose)';
             rowPromo.classList.remove('show');
+
             renderOrder();
             return;
         }
 
         if (input === 'DISC10') {
-            const subtotal = cart.reduce((s, i) => s + (i.harga * i.qty), 0);
+            const subtotal = cart.reduce((s, i) => s + (Number(i.harga || 0) * Number(i.qty || 0)), 0);
+
             potongan  = Math.floor(subtotal * 0.1);
             kodeValid = input;
 
-            info.innerHTML   = '<i class="fa-solid fa-circle-check mr-1"></i> Kode berhasil digunakan!';
-            info.style.color = 'var(--success-color)';
+            info.innerHTML = '<i class="fa-solid fa-circle-check"></i> Kode berhasil digunakan.';
+            info.style.color = 'var(--emerald)';
             rowPromo.classList.add('show');
+
             document.getElementById('promo-val').textContent = '-Rp ' + formatRupiah(potongan);
         } else {
             potongan  = 0;
             kodeValid = '';
-            info.innerHTML   = '<i class="fa-solid fa-circle-xmark mr-1"></i> Kode tidak valid.';
-            info.style.color = 'var(--danger-color)';
+
+            info.innerHTML = '<i class="fa-solid fa-circle-xmark"></i> Kode tidak valid.';
+            info.style.color = 'var(--rose)';
             rowPromo.classList.remove('show');
         }
 
@@ -576,89 +943,111 @@
         const list = document.getElementById('order-list');
 
         if (cart.length === 0) {
-            document.getElementById('empty-state').style.display    = 'block';
+            document.getElementById('empty-state').style.display = 'block';
             document.getElementById('checkout-content').style.display = 'none';
-            document.querySelector('.bottom-action').style.display  = 'none';
+            document.querySelector('.bottom-action').style.display = 'none';
             return;
         }
 
         let subtotal = 0;
+
         list.innerHTML = cart.map(item => {
-            const sub = item.harga * item.qty;
+            const nama = escapeHTML(item.nama_menu || '-');
+            const qty  = Number(item.qty || 0);
+            const sub  = Number(item.harga || 0) * qty;
+
             subtotal += sub;
+
             return `
                 <div class="order-item">
                     <div class="item-info">
-                        <h4>${item.nama_menu}</h4>
-                        <p>x${item.qty}</p>
+                        <h4>${nama}</h4>
+                        <p>x${qty}</p>
                     </div>
                     <div class="item-price">Rp ${formatRupiah(sub)}</div>
                 </div>
             `;
         }).join('');
 
-        const finalTotal = subtotal - potongan;
-        document.getElementById('order-total').textContent = 'Rp ' + formatRupiah(Math.max(0, finalTotal));
-    }
+        const finalTotal = Math.max(0, subtotal - potongan);
 
-    function showError(msg) {
-        const el = document.getElementById('error-msg');
-        el.textContent    = msg;
-        el.style.display  = 'block';
-        setTimeout(() => el.style.display = 'none', 4000);
+        document.getElementById('order-total').textContent = 'Rp ' + formatRupiah(finalTotal);
     }
 
     async function submitOrder() {
         const nama          = document.getElementById('nama_pemesan').value.trim();
         const paymentMethod = document.querySelector('input[name="payment_method"]:checked').value;
 
-        if (!nama)           { showError('Nama pemesan wajib diisi.'); return; }
-        if (cart.length === 0) { showError('Keranjang kosong.'); return; }
+        if (!nama) {
+            showError('Nama pemesan wajib diisi.');
+            return;
+        }
+
+        if (cart.length === 0) {
+            showError('Keranjang masih kosong.');
+            return;
+        }
 
         const btn = document.getElementById('btn-pesan');
-        btn.disabled  = true;
+
+        btn.disabled = true;
         btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Mengirim...';
 
         const formData = new FormData();
-        formData.append('nama_pemesan',   nama);
-        formData.append('catatan',        document.getElementById('catatan').value);
+        formData.append('nama_pemesan', nama);
+        formData.append('catatan', document.getElementById('catatan').value);
         formData.append('payment_method', paymentMethod);
-        formData.append('items',          JSON.stringify(cart));
-        formData.append('kode_promo',     kodeValid);
-        formData.append('potongan',       potongan);
+        formData.append('items', JSON.stringify(cart));
+        formData.append('kode_promo', kodeValid);
+        formData.append('potongan', potongan);
 
         try {
-            const res  = await fetch(SUBMIT_URL, { method: 'POST', body: formData });
+            const res  = await fetch(SUBMIT_URL, {
+                method: 'POST',
+                body: formData
+            });
+
             const text = await res.text();
 
             let data;
+
             try {
                 data = JSON.parse(text);
-            } catch(e) {
+            } catch (e) {
                 showError('Response tidak valid dari server.');
                 console.error('Raw response:', text);
-                btn.disabled  = false;
+
+                btn.disabled = false;
                 btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Kirim Pesanan Sekarang';
                 return;
             }
 
             if (data.success) {
                 localStorage.removeItem('arzana_cart_' + KODE_MEJA);
-                window.location.href = data.redirect;
-            } else if (data.debug || data.debug_error) {
-                showError('Debug mode aktif — cek console.');
-                console.log('DEBUG RESPONSE:', data);
-                btn.disabled  = false;
-                btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Kirim Pesanan Sekarang';
-            } else {
-                showError(data.message || 'Terjadi kesalahan.');
-                btn.disabled  = false;
-                btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Kirim Pesanan Sekarang';
+
+                if (data.redirect) {
+                    window.location.href = data.redirect;
+                } else {
+                    window.location.href = MENU_URL;
+                }
+
+                return;
             }
-        } catch(err) {
+
+            if (data.debug || data.debug_error) {
+                showError('Debug mode aktif. Cek console browser.');
+                console.log('DEBUG RESPONSE:', data);
+            } else {
+                showError(data.message || 'Terjadi kesalahan saat mengirim pesanan.');
+            }
+
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Kirim Pesanan Sekarang';
+        } catch (err) {
             showError('Gagal menghubungi server: ' + err.message);
             console.error(err);
-            btn.disabled  = false;
+
+            btn.disabled = false;
             btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Kirim Pesanan Sekarang';
         }
     }
