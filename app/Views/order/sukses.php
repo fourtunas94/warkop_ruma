@@ -3,92 +3,159 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pesanan Diterima — ARZANA</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <title>Status Pesanan — ARZANA</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    fontFamily: { sans: ['Plus Jakarta Sans', 'sans-serif'] },
-                    colors: {
-                        gold: '#e2b938',
-                        darkbg: '#121212',
-                        cardbg: '#1e1e1e',
-                        btnbg: '#2a2a2a'
-                    }
-                }
-            }
+    
+    <style>
+        :root {
+            --bg-dark: #0a0e17;
+            --card-dark: #131824;
+            --text-light: #ffffff;
+            --text-dim: #8a94a6;
+            --btn-blue: #0066ff;
+            --gold: #e2b938;
+            --emerald: #10b981;
+            --border-color: rgba(255, 255, 255, 0.05);
         }
-    </script>
-    <style> body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #121212; color: #ffffff; } </style>
-</head>
-<body class="min-h-screen flex items-center justify-center px-4 py-8">
-<div class="w-full max-w-sm">
-    <div class="bg-cardbg rounded-2xl border border-gray-800 overflow-hidden shadow-2xl">
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Poppins', sans-serif; }
+        body { background-color: var(--bg-dark); color: var(--text-light); -webkit-font-smoothing: antialiased; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 30px 20px; }
+        .container { width: 100%; max-width: 400px; }
+        .card { background-color: var(--card-dark); border-radius: 20px; overflow: hidden; border: 1px solid var(--border-color); box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4); }
         
-        <div class="px-6 py-8 text-center border-b border-gray-800 bg-btnbg/30">
-            <div class="w-16 h-16 rounded-full bg-emerald-500/20 flex items-center justify-center mx-auto mb-4 border border-emerald-500/30 shadow-[0_0_15px_rgba(16,185,129,0.2)]">
-                <i class="fa-solid fa-check text-emerald-400 text-3xl"></i>
-            </div>
-            <h1 class="text-white font-bold text-2xl mb-1">Pesanan Diterima!</h1>
-            <p class="text-gray-400 text-sm">Dapur kami sedang menyiapkan pesananmu.</p>
-        </div>
+        /* Header Status */
+        .status-header { padding: 30px 20px; text-align: center; border-bottom: 1px solid var(--border-color); }
+        .status-header.success { background-color: rgba(16, 185, 129, 0.05); }
+        .status-header.pending { background-color: rgba(226, 185, 56, 0.05); }
+        
+        .icon-circle { width: 64px; height: 64px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; font-size: 28px; }
+        .success .icon-circle { background-color: rgba(16, 185, 129, 0.1); color: var(--emerald); border: 1px solid rgba(16, 185, 129, 0.2); box-shadow: 0 0 20px rgba(16, 185, 129, 0.15); }
+        .pending .icon-circle { background-color: rgba(226, 185, 56, 0.1); color: var(--gold); border: 1px solid rgba(226, 185, 56, 0.2); box-shadow: 0 0 20px rgba(226, 185, 56, 0.15); }
+        
+        .status-title { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
+        .status-desc { font-size: 13px; color: var(--text-dim); }
+        
+        /* Konten */
+        .card-body { padding: 24px 20px; }
+        .instruction-box { background-color: rgba(226, 185, 56, 0.05); border: 1px dashed rgba(226, 185, 56, 0.3); border-radius: 14px; padding: 16px; margin-bottom: 24px; }
+        .instruction-header { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+        .instruction-header i { color: var(--gold); font-size: 20px; }
+        .instruction-header h4 { font-size: 13px; font-weight: 700; color: var(--gold); }
+        .instruction-box p { font-size: 12px; color: var(--text-dim); line-height: 1.5; }
+        
+        /* Info Pesanan */
+        .order-info { display: flex; justify-content: space-between; background-color: var(--bg-dark); border: 1px solid var(--border-color); border-radius: 14px; padding: 16px; margin-bottom: 20px; }
+        .info-col { flex: 1; }
+        .info-col:last-child { text-align: right; border-left: 1px solid var(--border-color); padding-left: 16px; }
+        .info-label { font-size: 10px; font-weight: 700; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
+        .info-value { font-size: 16px; font-weight: 700; color: var(--text-light); }
+        .info-col:last-child .info-value { color: var(--gold); }
+        
+        /* Ringkasan */
+        .summary-title { font-size: 11px; font-weight: 700; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; }
+        .summary-item { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 10px; }
+        .summary-item .name { color: var(--text-dim); }
+        .summary-item .name span { color: var(--gold); font-weight: 600; margin-left: 4px; }
+        .summary-item .price { font-weight: 600; color: var(--text-light); }
+        .summary-promo { display: flex; justify-content: space-between; font-size: 13px; padding-top: 12px; margin-top: 12px; border-top: 1px solid var(--border-color); color: var(--emerald); }
+        .summary-total { display: flex; justify-content: space-between; align-items: center; padding-top: 16px; margin-top: 12px; border-top: 1px solid var(--border-color); }
+        .summary-total span { font-size: 13px; font-weight: 700; color: var(--text-dim); }
+        .summary-total strong { font-size: 18px; font-weight: 700; color: var(--gold); }
+        
+        .btn-back { display: block; text-align: center; width: 100%; background-color: var(--card-dark); border: 1px solid var(--border-color); color: var(--text-light); padding: 14px; border-radius: 12px; font-size: 13px; font-weight: 600; text-decoration: none; margin-top: 20px; transition: 0.2s; }
+        .btn-back:hover { background-color: #1a2235; }
+    </style>
+</head>
+<body>
 
-        <div class="px-5 py-6">
+<?php 
+    $metode = isset($pesanan['metode_pembayaran']) ? strtolower($pesanan['metode_pembayaran']) : 'tunai'; 
+    $isSelesai = ($pesanan['status'] === 'selesai');
+?>
+
+<div class="container">
+    <div class="card">
+        
+        <?php if ($isSelesai): ?>
+            <div class="status-header success">
+                <div class="icon-circle"><i class="fa-solid fa-check"></i></div>
+                <h1 class="status-title">Pesanan Diproses!</h1>
+                <p class="status-desc">Pembayaran berhasil. Dapur kami sedang menyiapkan pesananmu.</p>
+            </div>
+        <?php else: ?>
+            <div class="status-header pending">
+                <div class="icon-circle"><i class="fa-solid fa-clock"></i></div>
+                <h1 class="status-title">Menunggu Pembayaran</h1>
+                <p class="status-desc">Selesaikan pembayaran agar pesanan segera diproses.</p>
+            </div>
+        <?php endif; ?>
+
+        <div class="card-body">
             
-            <div class="bg-gold/10 border border-gold/30 rounded-xl p-4 flex items-center gap-4 mb-6">
-                <div class="w-12 h-12 rounded-full bg-gold/20 flex items-center justify-center flex-shrink-0 animate-pulse">
-                    <i class="fa-solid fa-mobile-screen-button text-gold text-xl"></i>
+            <?php if (!$isSelesai): ?>
+                <div class="instruction-box">
+                    <?php if ($metode == 'tunai'): ?>
+                        <div class="instruction-header">
+                            <i class="fa-solid fa-cash-register"></i>
+                            <h4>Langkah Selanjutnya</h4>
+                        </div>
+                        <p>Segera tunjukkan layar ini atau sebutkan kode pesanan ke kasir untuk melakukan pembayaran tunai.</p>
+                    
+                    <?php else: ?>
+                        <div class="instruction-header">
+                            <i class="fa-solid fa-rotate"></i>
+                            <h4>Menunggu Konfirmasi</h4>
+                        </div>
+                        <p>Jika kamu sudah melakukan pembayaran melalui Duitku, sistem kami sedang memverifikasinya. Halaman ini bisa kamu *refresh* beberapa saat lagi.</p>
+                    <?php endif; ?>
                 </div>
-                <div>
-                    <p class="text-gold font-bold text-sm mb-0.5">Langkah Selanjutnya</p>
-                    <p class="text-gray-300 text-xs leading-relaxed">Segera tunjukkan layar ini ke kasir untuk melakukan pembayaran.</p>
+            <?php endif; ?>
+
+            <div class="order-info">
+                <div class="info-col">
+                    <p class="info-label">Kode Pesanan</p>
+                    <p class="info-value"><?= esc($pesanan['kode_pesanan']) ?></p>
+                </div>
+                <div class="info-col">
+                    <p class="info-label">Meja</p>
+                    <p class="info-value"><?= esc($meja['nomor_meja']) ?></p>
                 </div>
             </div>
 
-            <div class="flex items-center justify-between bg-darkbg border border-gray-800 rounded-xl px-4 py-3 mb-5">
-                <div>
-                    <p class="text-xs text-gray-500 font-bold uppercase tracking-widest mb-0.5">Kode Pesanan</p>
-                    <p class="text-lg font-bold text-white"><?= esc($pesanan['kode_pesanan']) ?></p>
-                </div>
-                <div class="text-right border-l border-gray-800 pl-4">
-                    <p class="text-xs text-gray-500 font-bold uppercase tracking-widest mb-0.5">Meja</p>
-                    <p class="text-lg font-bold text-gold"><?= esc($meja['nomor_meja']) ?></p>
-                </div>
+            <div style="margin-bottom: 24px;">
+                <p class="info-label">Atas Nama (<?= strtoupper($metode) ?>)</p>
+                <p style="font-size: 15px; font-weight: 600; color: var(--text-light);"><?= esc($pesanan['nama_pemesan']) ?></p>
             </div>
 
-            <div class="mb-5">
-                <p class="text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">Atas Nama</p>
-                <p class="text-base font-bold text-white"><?= esc($pesanan['nama_pemesan']) ?></p>
-            </div>
-
-            <div class="mb-6">
-                <p class="text-xs font-bold text-gray-500 uppercase tracking-widest mb-3">Ringkasan Pesanan</p>
-                <div class="space-y-3">
-                    <?php foreach ($items as $item): ?>
-                    <div class="flex items-center justify-between text-sm">
-                        <span class="text-gray-300 font-medium"><?= esc($item['nama_menu']) ?> <span class="text-gold font-bold ml-1">x<?= $item['qty'] ?></span></span>
-                        <span class="font-bold text-white">Rp <?= number_format($item['harga'] * $item['qty'], 0, ',', '.') ?></span>
-                    </div>
-                    <?php endforeach; ?>
+            <div>
+                <p class="summary-title">Ringkasan Pesanan</p>
+                
+                <?php foreach ($items as $item): ?>
+                <div class="summary-item">
+                    <span class="name"><?= esc($item['nama_menu']) ?> <span>x<?= $item['qty'] ?></span></span>
+                    <span class="price">Rp <?= number_format($item['harga'] * $item['qty'], 0, ',', '.') ?></span>
                 </div>
+                <?php endforeach; ?>
 
                 <?php if (isset($pesanan['potongan']) && $pesanan['potongan'] > 0): ?>
-                <div class="flex items-center justify-between pt-3 mt-3 border-t border-gray-800 text-emerald-400 text-sm">
-                    <span class="font-semibold">Potongan (<?= esc($pesanan['kode_promo']) ?>)</span>
-                    <span class="font-bold">-Rp <?= number_format($pesanan['potongan'], 0, ',', '.') ?></span>
+                <div class="summary-promo">
+                    <span style="font-weight: 600;">Potongan (<?= esc($pesanan['kode_promo']) ?>)</span>
+                    <span style="font-weight: 700;">-Rp <?= number_format($pesanan['potongan'], 0, ',', '.') ?></span>
                 </div>
                 <?php endif; ?>
 
-                <div class="flex items-center justify-between pt-4 mt-3 border-t border-gray-800">
-                    <span class="text-sm font-bold text-gray-400">Total Pembayaran</span>
-                    <span class="text-xl font-bold text-gold">Rp <?= number_format($pesanan['total_harga'], 0, ',', '.') ?></span>
+                <div class="summary-total">
+                    <span>Total Pembayaran</span>
+                    <strong>Rp <?= number_format($pesanan['total_harga'], 0, ',', '.') ?></strong>
                 </div>
             </div>
+
+            <a href="<?= base_url('order/' . $meja['kode_unik']) ?>" class="btn-back">Kembali ke Menu</a>
+
         </div>
     </div>
 </div>
+
 </body>
 </html>

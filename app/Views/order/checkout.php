@@ -4,227 +4,662 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Checkout — ARZANA</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    fontFamily: { sans: ['Plus Jakarta Sans', 'sans-serif'] },
-                    colors: {
-                        gold: '#e2b938',
-                        darkbg: '#121212',
-                        cardbg: '#1e1e1e',
-                        btnbg: '#2a2a2a'
-                    }
-                }
-            }
+    
+    <style>
+        :root {
+            --bg-dark: #0a0e17;
+            --card-dark: #131824;
+            --text-light: #ffffff;
+            --text-dim: #8a94a6;
+            --btn-blue: #0066ff;
+            --border-color: rgba(255, 255, 255, 0.05);
+            --cart-grad: linear-gradient(90deg, #007bff, #8a2be2);
+            --success-color: #10b981;
+            --danger-color: #ef4444;
         }
-    </script>
-    <style> 
-        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #121212; color: #ffffff; } 
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-light);
+            -webkit-font-smoothing: antialiased;
+            min-height: 100vh;
+        }
+
+        .app-container {
+            max-width: 480px;
+            margin: 0 auto;
+            position: relative;
+            padding-bottom: 120px;
+        }
+
+        /* --- Header --- */
+        .header {
+            position: sticky;
+            top: 0;
+            z-index: 30;
+            background-color: var(--bg-dark);
+            padding: 16px 20px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .btn-back {
+            width: 40px;
+            height: 40px;
+            background-color: var(--card-dark);
+            border-radius: 12px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: var(--text-dim);
+            text-decoration: none;
+            border: 1px solid var(--border-color);
+            transition: 0.2s;
+        }
+
+        .btn-back:hover {
+            color: var(--text-light);
+            background-color: #1a2235;
+        }
+
+        .header-title h1 {
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .header-title p {
+            font-size: 12px;
+            color: var(--text-dim);
+        }
+
+        .header-title p span {
+            color: #FDE047;
+            font-weight: 600;
+        }
+
+        /* --- Main Content --- */
+        .main-content {
+            padding: 20px;
+        }
+
+        .section-card {
+            background-color: var(--card-dark);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border: 1px solid var(--border-color);
+        }
+
+        .section-title {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .section-title i {
+            color: var(--btn-blue);
+        }
+
+        /* --- Order List --- */
+        .order-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px dashed rgba(255, 255, 255, 0.1);
+        }
+
+        .order-item:last-child {
+            border-bottom: none;
+        }
+
+        .item-info h4 {
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-light);
+        }
+
+        .item-info p {
+            font-size: 12px;
+            color: var(--btn-blue);
+            font-weight: 600;
+            margin-top: 4px;
+        }
+
+        .item-price {
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .order-summary {
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .summary-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+            font-size: 13px;
+        }
+
+        .summary-row.promo {
+            color: var(--success-color);
+            display: none;
+        }
+
+        .summary-row.promo.show {
+            display: flex;
+        }
+
+        .summary-total {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .summary-total span {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-dim);
+        }
+
+        .summary-total strong {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--btn-blue);
+        }
+
+        /* --- Forms --- */
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+
+        .form-group label span {
+            color: var(--danger-color);
+        }
+
+        .form-control {
+            width: 100%;
+            background-color: var(--bg-dark);
+            border: 1px solid var(--border-color);
+            color: var(--text-light);
+            border-radius: 12px;
+            padding: 14px 16px;
+            font-size: 13px;
+            transition: 0.2s;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--btn-blue);
+        }
+
+        textarea.form-control {
+            resize: none;
+        }
+
+        .promo-wrap {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn-promo {
+            background-color: #1e2538;
+            color: var(--text-light);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 0 20px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .btn-promo:hover {
+            background-color: var(--btn-blue);
+            border-color: var(--btn-blue);
+        }
+
+        .promo-msg {
+            font-size: 11px;
+            font-weight: 600;
+            margin-top: 8px;
+            display: none;
+        }
+
+        /* --- Metode Pembayaran (Baru) --- */
+        .payment-options {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 12px;
+        }
+
+        .pay-option {
+            display: flex;
+            align-items: center;
+            padding: 14px 16px;
+            background-color: var(--bg-dark);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .pay-option:hover {
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .pay-option input[type="radio"] {
+            display: none;
+        }
+
+        .pay-radio-custom {
+            width: 18px;
+            height: 18px;
+            border: 2px solid var(--text-dim);
+            border-radius: 50%;
+            margin-right: 12px;
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .pay-option input[type="radio"]:checked + .pay-radio-custom {
+            border-color: var(--btn-blue);
+        }
+
+        .pay-option input[type="radio"]:checked + .pay-radio-custom::after {
+            content: '';
+            width: 8px;
+            height: 8px;
+            background-color: var(--btn-blue);
+            border-radius: 50%;
+        }
+
+        .pay-info {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .pay-info span {
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .pay-info small {
+            font-size: 11px;
+            color: var(--text-dim);
+            margin-top: 2px;
+        }
+
+        /* --- Bottom Fixed Bar --- */
+        .bottom-action {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background-color: var(--card-dark);
+            padding: 16px 20px;
+            border-top: 1px solid var(--border-color);
+            z-index: 40;
+            display: flex;
+            justify-content: center;
+        }
+
+        .bottom-action-inner {
+            width: 100%;
+            max-width: 440px;
+        }
+
+        .btn-submit {
+            width: 100%;
+            background: var(--cart-grad);
+            color: white;
+            border: none;
+            border-radius: 14px;
+            padding: 16px;
+            font-size: 14px;
+            font-weight: 600;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+            transition: transform 0.1s;
+        }
+
+        .btn-submit:active {
+            transform: scale(0.98);
+        }
+
+        .btn-submit:disabled {
+            background: #333;
+            color: #888;
+            box-shadow: none;
+            cursor: not-allowed;
+        }
+
+        /* Error Toast */
+        #error-msg {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: var(--danger-color);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 600;
+            z-index: 100;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            display: none;
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            display: none;
+        }
+
+        .empty-state i {
+            font-size: 48px;
+            color: var(--text-dim);
+            margin-bottom: 16px;
+        }
+
+        .empty-state p {
+            color: var(--text-dim);
+            margin-bottom: 20px;
+        }
+
+        .btn-outline {
+            display: inline-block;
+            border: 1px solid var(--btn-blue);
+            color: var(--btn-blue);
+            padding: 10px 24px;
+            border-radius: 10px;
+            text-decoration: none;
+            font-size: 13px;
+            font-weight: 600;
+        }
     </style>
 </head>
-<body class="min-h-screen">
+<body>
 
-<header class="sticky top-0 z-30 bg-darkbg border-b border-gray-800">
-    <div class="max-w-xl mx-auto px-4 py-4 flex items-center gap-4">
-        <a href="javascript:history.back()" class="w-10 h-10 flex items-center justify-center rounded-xl bg-btnbg text-gray-300 transition-colors hover:bg-gray-700">
-            <i class="fa-solid fa-arrow-left text-sm"></i>
+<div class="app-container">
+    
+    <div id="error-msg">Pesan error disini</div>
+
+    <header class="header">
+        <a href="javascript:history.back()" class="btn-back">
+            <i class="fa-solid fa-arrow-left"></i>
         </a>
-        <div>
-            <p class="font-bold text-white text-base">Konfirmasi Pesanan</p>
-            <p class="text-xs text-gray-400 mt-0.5">Meja <span class="font-bold text-gold"><?= esc($meja['nomor_meja']) ?></span></p>
+        <div class="header-title">
+            <h1>Konfirmasi Pesanan</h1>
+            <p>Meja <span><?= esc($meja['nomor_meja']) ?></span></p>
         </div>
-    </div>
-</header>
+    </header>
 
-<main class="max-w-xl mx-auto px-4 pt-5 pb-32">
-
-    <div id="empty-state" class="hidden py-20 text-center">
-        <i class="fa-solid fa-cart-arrow-down text-gray-600 text-5xl mb-4"></i>
-        <p class="text-gray-400 font-medium text-lg">Keranjang kamu kosong</p>
-        <a href="javascript:history.back()" class="mt-4 inline-block text-gold text-sm font-bold bg-btnbg px-6 py-2.5 rounded-xl">Kembali ke menu</a>
-    </div>
-
-    <div id="checkout-content">
-        <div class="bg-cardbg rounded-2xl border border-gray-800 p-5 mb-5 shadow-lg">
-            <h3 class="text-sm font-bold text-white mb-4 flex items-center gap-2">
-                <i class="fa-solid fa-clipboard-list text-gold"></i> Pesanan Kamu
-            </h3>
-            <div id="order-list" class="divide-y divide-gray-800"></div>
-            
-            <div id="row-promo" class="hidden flex items-center justify-between pt-3 mt-3 border-t border-gray-800 text-emerald-400">
-                <span class="text-sm font-semibold">Potongan (Promo)</span>
-                <span id="promo-val" class="text-sm font-bold">-Rp 0</span>
-            </div>
-            
-            <div class="flex items-center justify-between pt-4 mt-3 border-t border-gray-800">
-                <span class="text-sm font-bold text-gray-300">Total Pembayaran</span>
-                <span id="order-total" class="text-xl font-bold text-gold">Rp 0</span>
-            </div>
+    <main class="main-content">
+        
+        <div id="empty-state" class="empty-state">
+            <i class="fa-solid fa-cart-arrow-down"></i>
+            <p>Keranjang kamu masih kosong nih.</p>
+            <a href="javascript:history.back()" class="btn-outline">Kembali ke Menu</a>
         </div>
 
-        <div class="bg-cardbg rounded-2xl border border-gray-800 p-5 mb-5 shadow-lg">
-            <h3 class="text-sm font-bold text-white mb-4 flex items-center gap-2">
-                <i class="fa-solid fa-user-pen text-gold"></i> Data Pemesan
-            </h3>
-            <div class="space-y-4">
-                <div>
-                    <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">
-                        Nama Kamu <span class="text-red-500">*</span>
-                    </label>
-                    <input type="text" id="nama_pemesan" placeholder="Masukkan nama kamu"
-                        class="w-full bg-darkbg border border-gray-700 text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-gold/50 focus:border-gold transition-all">
+        <div id="checkout-content">
+            <section class="section-card">
+                <h3 class="section-title"><i class="fa-solid fa-clipboard-list"></i> Pesanan Kamu</h3>
+                <div id="order-list"></div>
+                
+                <div class="order-summary">
+                    <div id="row-promo" class="summary-row promo">
+                        <span>Potongan (Promo)</span>
+                        <span id="promo-val">-Rp 0</span>
+                    </div>
+                    <div class="summary-total">
+                        <span>Total Pembayaran</span>
+                        <strong id="order-total">Rp 0</strong>
+                    </div>
                 </div>
-                <div>
-                    <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Catatan (opsional)</label>
-                    <textarea id="catatan" rows="2" placeholder="Misal: tidak pakai pedas, dll"
-                        class="w-full bg-darkbg border border-gray-700 text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-gold/50 focus:border-gold transition-all resize-none"></textarea>
+            </section>
+
+            <section class="section-card">
+                <h3 class="section-title"><i class="fa-solid fa-wallet"></i> Metode Pembayaran</h3>
+                <div class="payment-options">
+                    <label class="pay-option">
+                        <input type="radio" name="payment_method" value="tunai" checked>
+                        <div class="pay-radio-custom"></div>
+                        <div class="pay-info">
+                            <span>Tunai ke Kasir</span>
+                            <small>Bayar langsung di meja kasir</small>
+                        </div>
+                    </label>
+                    <label class="pay-option">
+                        <input type="radio" name="payment_method" value="qris">
+                        <div class="pay-radio-custom"></div>
+                        <div class="pay-info">
+                            <span>QRIS / E-Wallet</span>
+                            <small>Gopay, OVO, Dana, ShopeePay</small>
+                        </div>
+                    </label>
+                    <label class="pay-option">
+                        <input type="radio" name="payment_method" value="transfer">
+                        <div class="pay-radio-custom"></div>
+                        <div class="pay-info">
+                            <span>Transfer Bank</span>
+                            <small>Virtual Account BCA, Mandiri, BNI</small>
+                        </div>
+                    </label>
+                </div>
+            </section>
+
+            <section class="section-card">
+                <h3 class="section-title"><i class="fa-solid fa-user-pen"></i> Data Pemesan</h3>
+                
+                <div class="form-group">
+                    <label>Nama Kamu <span>*</span></label>
+                    <input type="text" id="nama_pemesan" class="form-control" placeholder="Masukkan nama kamu">
                 </div>
                 
-                <div class="pt-2">
-                    <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Kode Promo</label>
-                    <div class="flex gap-2">
-                        <input type="text" id="kode_promo" placeholder="Masukkan kode promo"
-                            class="flex-1 bg-darkbg border border-gray-700 text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-gold/50 focus:border-gold transition-all uppercase">
-                        <button type="button" onclick="cekPromo()" class="bg-btnbg hover:bg-gray-700 text-white px-5 rounded-xl text-xs font-bold border border-gray-700 transition-colors">Periksa</button>
-                    </div>
-                    <p id="promo-info" class="text-xs mt-2 font-semibold hidden"></p>
+                <div class="form-group">
+                    <label>Catatan (opsional)</label>
+                    <textarea id="catatan" rows="2" class="form-control" placeholder="Misal: tidak pakai pedas, es dipisah"></textarea>
                 </div>
-            </div>
+                
+                <div class="form-group">
+                    <label>Kode Promo</label>
+                    <div class="promo-wrap">
+                        <input type="text" id="kode_promo" class="form-control uppercase" placeholder="Masukkan kode">
+                        <button type="button" onclick="cekPromo()" class="btn-promo">Pakai</button>
+                    </div>
+                    <p id="promo-info" class="promo-msg"></p>
+                </div>
+            </section>
         </div>
+    </main>
 
-        <div class="bg-btnbg border border-gray-700 rounded-xl p-4 flex items-start gap-3 text-xs text-gray-300">
-            <i class="fa-solid fa-circle-info mt-0.5 text-gold text-base"></i>
-            <span class="leading-relaxed">Pembayaran dilakukan secara <strong class="text-white">tunai ke kasir</strong> setelah pesanan kamu selesai dikonfirmasi.</span>
+    <div class="bottom-action">
+        <div class="bottom-action-inner">
+            <button id="btn-pesan" onclick="submitOrder()" class="btn-submit">
+                <i class="fa-solid fa-paper-plane"></i> Kirim Pesanan Sekarang
+            </button>
         </div>
     </div>
-</main>
-
-<div id="error-msg" class="hidden fixed bottom-24 left-0 right-0 mx-auto max-w-xl px-4 z-50">
-    <div class="bg-red-500 text-white text-sm px-4 py-3 rounded-xl text-center font-bold shadow-xl"></div>
-</div>
-
-<div class="fixed bottom-0 left-0 right-0 bg-cardbg border-t border-gray-800 px-4 py-4 max-w-xl mx-auto z-40">
-    <button id="btn-pesan" onclick="submitOrder()"
-        class="w-full bg-gold hover:bg-yellow-500 text-black font-bold py-3.5 rounded-xl transition-colors text-sm flex items-center justify-center gap-2">
-        <i class="fa-solid fa-paper-plane"></i> Kirim Pesanan Sekarang
-    </button>
 </div>
 
 <script>
-    const KODE_MEJA = '<?= $meja['kode_unik'] ?>';
+    const KODE_MEJA  = '<?= esc($meja['kode_unik']) ?>';
     const SUBMIT_URL = '<?= base_url('order/submit/' . $meja['kode_unik']) ?>';
-    const cart = JSON.parse(localStorage.getItem('arzana_cart_' + KODE_MEJA) || '[]');
-    
-    let potongan = 0;
-    let kodeValid = "";
+    const cart       = JSON.parse(localStorage.getItem('arzana_cart_' + KODE_MEJA) || '[]');
+
+    let potongan  = 0;
+    let kodeValid = '';
+
+    function formatRupiah(number) {
+        return number.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    }
 
     function cekPromo() {
-        const input = document.getElementById('kode_promo').value.trim().toUpperCase();
-        const info = document.getElementById('promo-info');
+        const input   = document.getElementById('kode_promo').value.trim().toUpperCase();
+        const info    = document.getElementById('promo-info');
         const rowPromo = document.getElementById('row-promo');
-        
-        info.classList.remove('hidden');
 
-        if (input === "") {
-            potongan = 0;
-            kodeValid = "";
-            info.textContent = "Masukkan kode promo terlebih dahulu.";
-            info.className = "text-xs mt-2 font-semibold text-red-400 block";
-            rowPromo.classList.add('hidden');
+        info.style.display = 'block';
+
+        if (input === '') {
+            potongan  = 0;
+            kodeValid = '';
+            info.textContent  = 'Masukkan kode promo terlebih dahulu.';
+            info.style.color  = 'var(--danger-color)';
+            rowPromo.classList.remove('show');
             renderOrder();
             return;
         }
 
-        if (input === "DISC10") {
+        if (input === 'DISC10') {
             const subtotal = cart.reduce((s, i) => s + (i.harga * i.qty), 0);
-            potongan = Math.floor(subtotal * 0.1);
+            potongan  = Math.floor(subtotal * 0.1);
             kodeValid = input;
-            
-            info.innerHTML = '<i class="fa-solid fa-circle-check mr-1"></i> Kode berhasil digunakan!';
-            info.className = "text-xs mt-2 font-bold text-emerald-400 block";
-            rowPromo.classList.remove('hidden');
-            rowPromo.classList.add('flex');
-            document.getElementById('promo-val').textContent = '-Rp ' + potongan.toLocaleString('id-ID');
+
+            info.innerHTML   = '<i class="fa-solid fa-circle-check mr-1"></i> Kode berhasil digunakan!';
+            info.style.color = 'var(--success-color)';
+            rowPromo.classList.add('show');
+            document.getElementById('promo-val').textContent = '-Rp ' + formatRupiah(potongan);
         } else {
-            potongan = 0;
-            kodeValid = "";
-            info.innerHTML = '<i class="fa-solid fa-circle-xmark mr-1"></i> Kode tidak ditemukan atau tidak valid.';
-            info.className = "text-xs mt-2 font-bold text-red-400 block";
-            rowPromo.classList.remove('flex');
-            rowPromo.classList.add('hidden');
+            potongan  = 0;
+            kodeValid = '';
+            info.innerHTML   = '<i class="fa-solid fa-circle-xmark mr-1"></i> Kode tidak valid.';
+            info.style.color = 'var(--danger-color)';
+            rowPromo.classList.remove('show');
         }
-        
+
         renderOrder();
     }
 
     function renderOrder() {
         const list = document.getElementById('order-list');
+
         if (cart.length === 0) {
-            document.getElementById('empty-state').classList.remove('hidden');
-            document.getElementById('checkout-content').classList.add('hidden');
+            document.getElementById('empty-state').style.display    = 'block';
+            document.getElementById('checkout-content').style.display = 'none';
+            document.querySelector('.bottom-action').style.display  = 'none';
             return;
         }
-        
+
         let subtotal = 0;
         list.innerHTML = cart.map(item => {
             const sub = item.harga * item.qty;
             subtotal += sub;
-            return `<div class="py-3 flex items-center justify-between">
-                <div class="pr-4">
-                    <p class="text-sm font-semibold text-white">${item.nama_menu}</p>
-                    <p class="text-xs font-bold text-gold mt-1">x${item.qty}</p>
+            return `
+                <div class="order-item">
+                    <div class="item-info">
+                        <h4>${item.nama_menu}</h4>
+                        <p>x${item.qty}</p>
+                    </div>
+                    <div class="item-price">Rp ${formatRupiah(sub)}</div>
                 </div>
-                <p class="text-sm font-bold text-gray-300">Rp ${sub.toLocaleString('id-ID')}</p>
-            </div>`;
+            `;
         }).join('');
-        
+
         const finalTotal = subtotal - potongan;
-        document.getElementById('order-total').textContent = 'Rp ' + Math.max(0, finalTotal).toLocaleString('id-ID');
+        document.getElementById('order-total').textContent = 'Rp ' + formatRupiah(Math.max(0, finalTotal));
     }
 
     function showError(msg) {
         const el = document.getElementById('error-msg');
-        el.querySelector('div').textContent = msg;
-        el.classList.remove('hidden');
-        setTimeout(() => el.classList.add('hidden'), 3000);
+        el.textContent    = msg;
+        el.style.display  = 'block';
+        setTimeout(() => el.style.display = 'none', 4000);
     }
 
     async function submitOrder() {
-        const nama = document.getElementById('nama_pemesan').value.trim();
-        if (!nama) { showError('Nama pemesan wajib diisi.'); return; }
+        const nama          = document.getElementById('nama_pemesan').value.trim();
+        const paymentMethod = document.querySelector('input[name="payment_method"]:checked').value;
+
+        if (!nama)           { showError('Nama pemesan wajib diisi.'); return; }
         if (cart.length === 0) { showError('Keranjang kosong.'); return; }
 
         const btn = document.getElementById('btn-pesan');
-        btn.disabled = true;
-        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Mengirim...';
+        btn.disabled  = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Mengirim...';
 
         const formData = new FormData();
-        formData.append('nama_pemesan', nama);
-        formData.append('catatan', document.getElementById('catatan').value);
-        formData.append('items', JSON.stringify(cart));
-        formData.append('kode_promo', kodeValid);
-        formData.append('potongan', potongan);
+        formData.append('nama_pemesan',   nama);
+        formData.append('catatan',        document.getElementById('catatan').value);
+        formData.append('payment_method', paymentMethod);
+        formData.append('items',          JSON.stringify(cart));
+        formData.append('kode_promo',     kodeValid);
+        formData.append('potongan',       potongan);
 
         try {
-            const res = await fetch(SUBMIT_URL, { method: 'POST', body: formData });
-            const data = await res.json();
+            const res  = await fetch(SUBMIT_URL, { method: 'POST', body: formData });
+            const text = await res.text();
+
+            let data;
+            try {
+                data = JSON.parse(text);
+            } catch(e) {
+                showError('Response tidak valid dari server.');
+                console.error('Raw response:', text);
+                btn.disabled  = false;
+                btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Kirim Pesanan Sekarang';
+                return;
+            }
 
             if (data.success) {
                 localStorage.removeItem('arzana_cart_' + KODE_MEJA);
                 window.location.href = data.redirect;
+            } else if (data.debug || data.debug_error) {
+                showError('Debug mode aktif — cek console.');
+                console.log('DEBUG RESPONSE:', data);
+                btn.disabled  = false;
+                btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Kirim Pesanan Sekarang';
             } else {
                 showError(data.message || 'Terjadi kesalahan.');
-                btn.disabled = false;
-                btn.innerHTML = '<i class="fa-solid fa-paper-plane mr-2"></i> Kirim Pesanan Sekarang';
+                btn.disabled  = false;
+                btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Kirim Pesanan Sekarang';
             }
-        } catch {
-            showError('Gagal menghubungi server.');
-            btn.disabled = false;
-            btn.innerHTML = '<i class="fa-solid fa-paper-plane mr-2"></i> Kirim Pesanan Sekarang';
+        } catch(err) {
+            showError('Gagal menghubungi server: ' + err.message);
+            console.error(err);
+            btn.disabled  = false;
+            btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Kirim Pesanan Sekarang';
         }
     }
 
