@@ -207,4 +207,32 @@ class Dashboard extends BaseController
             default    => ucfirst($metode),
         };
     }
+
+    public function siap(int $id)
+    {
+        $pesanan = $this->pesananModel->find($id);
+
+        if (! $pesanan) {
+            return redirect()
+                ->to(base_url('kasir/dashboard'))
+                ->with('error', 'Pesanan tidak ditemukan.');
+        }
+
+        $update = [
+            'status_pesanan' => 'siap',
+            'waktu_siap'     => date('Y-m-d H:i:s'),
+        ];
+
+        if (($pesanan['metode_pembayaran'] ?? '') === 'tunai') {
+            $update['status'] = 'selesai';
+        }
+
+        $this->pesananModel->update($id, $update);
+
+        $nomorAntrian = $pesanan['nomor_antrian'] ?? '-';
+
+        return redirect()
+            ->to(base_url('kasir/dashboard'))
+            ->with('success', 'Pesanan nomor antrian ' . $nomorAntrian . ' sudah siap diantarkan.');
+    }
 }

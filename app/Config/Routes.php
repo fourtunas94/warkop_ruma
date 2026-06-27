@@ -15,6 +15,8 @@ $routes->post('order/cek-promo/(:segment)',  'Order::cekPromo/$1');
 $routes->post('order/submit/(:segment)',     'Order::submit/$1');
 $routes->get('order/sukses/(:segment)',      'Order::sukses/$1');
 $routes->post('order/midtrans-notification', 'Order::midtransNotification');
+$routes->get('monitor', 'PublicMonitor::index');
+$routes->get('monitor/data', 'PublicMonitor::data');
 
 $routes->group('admin', ['filter' => 'role:admin'], function ($routes) {
     $routes->get('dashboard', 'Admin\Dashboard::index');
@@ -70,4 +72,5 @@ $routes->group('kasir', ['filter' => 'role:kasir'], function ($routes) {
     $routes->get('cek_baru/(:num)',              'Kasir\Dashboard::cek_baru/$1');
     $routes->get('cek_pembayaran_berhasil',      'Kasir\Dashboard::cek_pembayaran_berhasil');
     $routes->get('riwayat',                      'Kasir\Riwayat::index');
+    $routes->post('siap/(:num)', 'Kasir\Dashboard::siap/$1');
 });

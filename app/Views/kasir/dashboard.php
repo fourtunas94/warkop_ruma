@@ -26,9 +26,27 @@ $statusBadgeClass = static function ($status) {
 
 $statusLabel = static function ($status) {
     return match ($status) {
-        'selesai' => 'Selesai',
-        'pending' => 'Pending',
+        'selesai' => 'Pembayaran Selesai',
+        'pending' => 'Menunggu Bayar',
         default   => ucfirst((string) $status),
+    };
+};
+
+$statusPesananBadgeClass = static function ($status) {
+    return match ($status) {
+        'siap'     => 'bg-emerald-500/10 text-emerald-300 border-emerald-400/20',
+        'selesai'  => 'bg-sky-500/10 text-sky-300 border-sky-400/20',
+        'menunggu' => 'bg-amber-500/10 text-amber-300 border-amber-400/20',
+        default    => 'bg-slate-500/10 text-slate-300 border-slate-400/20',
+    };
+};
+
+$statusPesananLabel = static function ($status) {
+    return match ($status) {
+        'siap'     => 'Siap Diantarkan',
+        'selesai'  => 'Selesai',
+        'menunggu' => 'Sedang Disiapkan',
+        default    => ucfirst((string) $status),
     };
 };
 
@@ -67,11 +85,13 @@ $receiptData = static function (array $p) use ($formatMetode): array {
     return [
         'id'                => (int) ($p['id'] ?? 0),
         'kode_pesanan'      => $p['kode_pesanan'] ?? '-',
+        'nomor_antrian'     => $p['nomor_antrian'] ?? '-',
         'nomor_meja'        => $p['nomor_meja'] ?? '-',
         'nama_pemesan'      => $p['nama_pemesan'] ?? '-',
         'metode_pembayaran' => $p['metode_pembayaran'] ?? '-',
         'metode_label'      => $formatMetode($p['metode_pembayaran'] ?? '-'),
         'status'            => $p['status'] ?? 'pending',
+        'status_pesanan'    => $p['status_pesanan'] ?? 'menunggu',
         'catatan'           => $p['catatan'] ?? '',
         'created_at'        => $p['created_at'] ?? date('Y-m-d H:i:s'),
         'waktu'             => ! empty($p['created_at']) ? date('H:i', strtotime($p['created_at'])) : date('H:i'),
@@ -106,11 +126,18 @@ $jsonFlags = JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP;
                     </h1>
 
                     <p class="text-sm lg:text-base text-slate-400 mt-2 max-w-2xl">
-                        Pantau pesanan masuk, konfirmasi pesanan selesai, dan cetak struk untuk pelanggan.
+                        Pantau pesanan masuk, klik satu tombol saat pesanan siap, lalu cetak struk untuk pengantar.
                     </p>
                 </div>
 
                 <div class="flex flex-col sm:flex-row gap-3">
+                    <a href="<?= base_url('monitor') ?>"
+                       target="_blank"
+                       class="inline-flex items-center justify-center gap-2 rounded-2xl bg-white/[.04] hover:bg-white/[.08] border border-white/10 px-4 py-3 text-sm font-bold text-slate-300 hover:text-white transition">
+                        <i class="fa-solid fa-display"></i>
+                        Buka Monitor
+                    </a>
+
                     <button type="button"
                             id="btn-enable-sound"
                             onclick="aktifkanSuara()"
@@ -158,10 +185,10 @@ $jsonFlags = JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP;
         <div class="rounded-[1.5rem] border border-white/10 bg-white/[.035] backdrop-blur p-5 shadow-soft">
             <div class="flex items-center gap-4">
                 <div class="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-400/20 flex items-center justify-center text-emerald-300">
-                    <i class="fa-solid fa-circle-check"></i>
+                    <i class="fa-solid fa-bell-concierge"></i>
                 </div>
                 <div>
-                    <p class="text-xs text-slate-500 font-bold uppercase tracking-[0.16em]">Selesai Hari Ini</p>
+                    <p class="text-xs text-slate-500 font-bold uppercase tracking-[0.16em]">Siap Hari Ini</p>
                     <p class="text-2xl font-extrabold text-white mt-1" id="count-selesai"><?= (int) $total_selesai ?></p>
                 </div>
             </div>
@@ -187,7 +214,7 @@ $jsonFlags = JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP;
             <div>
                 <h2 class="text-lg font-extrabold text-white">Pesanan Menunggu</h2>
                 <p class="text-xs text-slate-500 mt-1">
-                    Pesanan yang belum selesai dibuat dapur atau belum dikonfirmasi kasir.
+                    Klik <b>Pesanan Siap + Cetak</b> saat makanan/minuman sudah selesai dibuat.
                 </p>
             </div>
 
@@ -200,14 +227,26 @@ $jsonFlags = JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP;
         <div class="p-4 lg:p-5">
             <div id="order-container" class="space-y-4 <?= empty($pesanan_pending) ? 'hidden' : '' ?>">
                 <?php foreach (($pesanan_pending ?? []) as $p): ?>
-                    <?php $orderJson = json_encode($receiptData($p), $jsonFlags); ?>
+                    <?php
+                        $orderJson = json_encode($receiptData($p), $jsonFlags);
+
+                        $metodePembayaran = $p['metode_pembayaran'] ?? '';
+                        $statusBayar      = $p['status'] ?? 'pending';
+                        $statusPesanan    = $p['status_pesanan'] ?? 'menunggu';
+
+                        $bolehSiap = $metodePembayaran === 'tunai' || $statusBayar === 'selesai';
+                    ?>
 
                     <div class="rounded-[1.5rem] border border-amber-400/20 bg-amber-500/[.04] overflow-hidden shadow-soft" data-order-card="<?= esc($p['id']) ?>">
                         <div class="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4 px-5 py-4 border-b border-white/10 bg-white/[.025]">
                             <div class="flex items-start gap-4">
-                                <div class="relative mt-1">
-                                    <span class="absolute inline-flex h-3 w-3 rounded-full bg-amber-400 opacity-75 animate-ping"></span>
-                                    <span class="relative inline-flex rounded-full h-3 w-3 bg-amber-400"></span>
+                                <div class="w-16 h-16 rounded-3xl bg-gradient-to-br from-sky-500 to-purple-600 flex items-center justify-center shadow-glow flex-shrink-0">
+                                    <div class="text-center">
+                                        <p class="text-[9px] font-black uppercase tracking-widest text-white/70">Antri</p>
+                                        <p class="text-lg font-black text-white leading-none">
+                                            <?= esc($p['nomor_antrian'] ?? '-') ?>
+                                        </p>
+                                    </div>
                                 </div>
 
                                 <div>
@@ -225,11 +264,15 @@ $jsonFlags = JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP;
                                     <div class="mt-2 flex flex-wrap items-center gap-2">
                                         <span class="inline-flex items-center text-[11px] px-2.5 py-1 rounded-full border bg-white/[.04] text-slate-300 border-white/10">
                                             <i class="fa-solid fa-wallet mr-1.5 text-sky-300"></i>
-                                            <?= esc($formatMetode($p['metode_pembayaran'] ?? '-')) ?>
+                                            <?= esc($formatMetode($metodePembayaran)) ?>
                                         </span>
 
-                                        <span class="inline-flex items-center text-[11px] px-2.5 py-1 rounded-full border <?= $statusBadgeClass($p['status'] ?? '-') ?>">
-                                            <?= esc($statusLabel($p['status'] ?? '-')) ?>
+                                        <span class="inline-flex items-center text-[11px] px-2.5 py-1 rounded-full border <?= $statusBadgeClass($statusBayar) ?>">
+                                            <?= esc($statusLabel($statusBayar)) ?>
+                                        </span>
+
+                                        <span class="inline-flex items-center text-[11px] px-2.5 py-1 rounded-full border <?= $statusPesananBadgeClass($statusPesanan) ?>">
+                                            <?= esc($statusPesananLabel($statusPesanan)) ?>
                                         </span>
                                     </div>
                                 </div>
@@ -247,15 +290,15 @@ $jsonFlags = JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP;
                                     Cetak
                                 </button>
 
-                                <?php if (($p['metode_pembayaran'] ?? '') === 'tunai'): ?>
-                                    <form action="<?= base_url('kasir/selesai/' . $p['id']) ?>"
+                                <?php if ($bolehSiap): ?>
+                                    <form action="<?= base_url('kasir/siap/' . $p['id']) ?>"
                                           method="post"
                                           onsubmit='return selesaiDanCetak(event, this, <?= $orderJson ?>)'>
                                         <?= csrf_field() ?>
                                         <button type="submit"
                                                 class="w-full inline-flex items-center justify-center gap-2 rounded-2xl bg-emerald-500 hover:bg-emerald-600 px-4 py-2.5 text-xs font-bold text-white transition">
-                                            <i class="fa-solid fa-kitchen-set"></i>
-                                            Siap / Selesai + Cetak
+                                            <i class="fa-solid fa-bell-concierge"></i>
+                                            Pesanan Siap + Cetak
                                         </button>
                                     </form>
                                 <?php else: ?>
@@ -307,8 +350,8 @@ $jsonFlags = JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP;
                 <div class="w-16 h-16 rounded-3xl bg-white/[.04] border border-white/10 flex items-center justify-center mb-4">
                     <i class="fa-solid fa-mug-hot text-slate-500 text-2xl"></i>
                 </div>
-                <p class="text-sm font-bold text-white">Tidak ada pesanan masuk</p>
-                <p class="text-xs text-slate-500 mt-1">Sistem sedang memantau pesanan baru dan pembayaran berhasil.</p>
+                <p class="text-sm font-bold text-white">Tidak ada pesanan menunggu</p>
+                <p class="text-xs text-slate-500 mt-1">Pesanan yang sudah siap akan tampil di monitor public.</p>
             </div>
         </div>
     </div>
@@ -331,10 +374,10 @@ $jsonFlags = JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP;
                 <thead class="border-b border-white/10 bg-white/[.025]">
                     <tr>
                         <th class="text-left text-xs font-bold text-slate-500 uppercase tracking-[0.16em] px-5 py-4">Waktu</th>
+                        <th class="text-left text-xs font-bold text-slate-500 uppercase tracking-[0.16em] px-5 py-4">Antrian</th>
                         <th class="text-left text-xs font-bold text-slate-500 uppercase tracking-[0.16em] px-5 py-4">Kode</th>
                         <th class="text-left text-xs font-bold text-slate-500 uppercase tracking-[0.16em] px-5 py-4">Meja</th>
                         <th class="text-left text-xs font-bold text-slate-500 uppercase tracking-[0.16em] px-5 py-4">Pemesan</th>
-                        <th class="text-left text-xs font-bold text-slate-500 uppercase tracking-[0.16em] px-5 py-4">Metode</th>
                         <th class="text-left text-xs font-bold text-slate-500 uppercase tracking-[0.16em] px-5 py-4">Status</th>
                         <th class="text-right text-xs font-bold text-slate-500 uppercase tracking-[0.16em] px-5 py-4">Total</th>
                         <th class="text-right text-xs font-bold text-slate-500 uppercase tracking-[0.16em] px-5 py-4">Aksi</th>
@@ -350,11 +393,18 @@ $jsonFlags = JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP;
                         </tr>
                     <?php else: ?>
                         <?php foreach ($riwayatHariIni as $r): ?>
-                            <?php $riwayatJson = json_encode($receiptData($r), $jsonFlags); ?>
+                            <?php
+                                $riwayatJson = json_encode($receiptData($r), $jsonFlags);
+                                $statusPesananR = $r['status_pesanan'] ?? 'menunggu';
+                            ?>
 
                             <tr id="riwayat-order-<?= esc($r['id']) ?>" class="hover:bg-white/[.025] transition">
                                 <td class="px-5 py-4 text-slate-400 whitespace-nowrap">
                                     <?= date('H:i', strtotime($r['created_at'])) ?>
+                                </td>
+
+                                <td class="px-5 py-4 font-black text-sky-300 whitespace-nowrap">
+                                    <?= esc($r['nomor_antrian'] ?? '-') ?>
                                 </td>
 
                                 <td class="px-5 py-4 font-bold text-white whitespace-nowrap">
@@ -370,14 +420,8 @@ $jsonFlags = JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP;
                                 </td>
 
                                 <td class="px-5 py-4 whitespace-nowrap">
-                                    <span class="inline-flex items-center text-[11px] px-2.5 py-1 rounded-full border bg-white/[.04] text-slate-300 border-white/10">
-                                        <?= esc($formatMetode($r['metode_pembayaran'] ?? '-')) ?>
-                                    </span>
-                                </td>
-
-                                <td class="px-5 py-4 whitespace-nowrap">
-                                    <span class="inline-flex items-center text-[11px] px-2.5 py-1 rounded-full border <?= $statusBadgeClass($r['status'] ?? '-') ?>">
-                                        <?= esc($statusLabel($r['status'] ?? '-')) ?>
+                                    <span class="inline-flex items-center text-[11px] px-2.5 py-1 rounded-full border <?= $statusPesananBadgeClass($statusPesananR) ?>">
+                                        <?= esc($statusPesananLabel($statusPesananR)) ?>
                                     </span>
                                 </td>
 
@@ -386,16 +430,12 @@ $jsonFlags = JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP;
                                 </td>
 
                                 <td class="px-5 py-4 text-right whitespace-nowrap">
-                                    <?php if (($r['status'] ?? '') === 'selesai'): ?>
-                                        <button type="button"
-                                                onclick='cetakStruk(<?= $riwayatJson ?>)'
-                                                class="inline-flex items-center justify-center gap-2 rounded-xl bg-sky-500/10 hover:bg-sky-500/20 border border-sky-400/20 px-3 py-2 text-xs font-bold text-sky-300 hover:text-white transition">
-                                            <i class="fa-solid fa-print"></i>
-                                            Cetak
-                                        </button>
-                                    <?php else: ?>
-                                        <span class="text-xs text-slate-600">-</span>
-                                    <?php endif; ?>
+                                    <button type="button"
+                                            onclick='cetakStruk(<?= $riwayatJson ?>)'
+                                            class="inline-flex items-center justify-center gap-2 rounded-xl bg-sky-500/10 hover:bg-sky-500/20 border border-sky-400/20 px-3 py-2 text-xs font-bold text-sky-300 hover:text-white transition">
+                                        <i class="fa-solid fa-print"></i>
+                                        Cetak
+                                    </button>
                                 </td>
                             </tr>
                         <?php endforeach; ?>
@@ -415,8 +455,8 @@ $jsonFlags = JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP;
         <h3 class="text-xl font-extrabold text-white text-center mb-1" id="modal-title">Pesanan Baru!</h3>
 
         <p class="text-slate-400 text-center mb-6 text-sm" id="modal-message">
-            Orderan masuk dari <span id="notif-meja" class="font-bold text-sky-300 uppercase"></span><br>
-            atas nama <span id="notif-nama" class="font-bold text-white"></span>.
+            Orderan masuk dari <span class="font-bold text-sky-300 uppercase"></span><br>
+            atas nama <span class="font-bold text-white"></span>.
         </p>
 
         <div class="bg-white/[.04] rounded-2xl p-4 text-center border border-white/10 flex flex-col items-center">
@@ -539,14 +579,28 @@ $jsonFlags = JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP;
     }
 
     function formatStatusLabel(status) {
-        if (status === 'selesai') return 'Selesai';
-        if (status === 'pending') return 'Pending';
+        if (status === 'selesai') return 'Pembayaran Selesai';
+        if (status === 'pending') return 'Menunggu Bayar';
         return status ? status.charAt(0).toUpperCase() + status.slice(1) : '-';
     }
 
     function statusBadgeClass(status) {
         if (status === 'selesai') return 'bg-emerald-500/10 text-emerald-300 border-emerald-400/20';
         if (status === 'pending') return 'bg-amber-500/10 text-amber-300 border-amber-400/20';
+        return 'bg-slate-500/10 text-slate-300 border-slate-400/20';
+    }
+
+    function formatStatusPesananLabel(status) {
+        if (status === 'siap') return 'Siap Diantarkan';
+        if (status === 'selesai') return 'Selesai';
+        if (status === 'menunggu') return 'Sedang Disiapkan';
+        return status ? status.charAt(0).toUpperCase() + status.slice(1) : '-';
+    }
+
+    function statusPesananBadgeClass(status) {
+        if (status === 'siap') return 'bg-emerald-500/10 text-emerald-300 border-emerald-400/20';
+        if (status === 'selesai') return 'bg-sky-500/10 text-sky-300 border-sky-400/20';
+        if (status === 'menunggu') return 'bg-amber-500/10 text-amber-300 border-amber-400/20';
         return 'bg-slate-500/10 text-slate-300 border-slate-400/20';
     }
 
@@ -599,6 +653,7 @@ $jsonFlags = JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP;
             title.textContent = 'Pesanan Baru!';
             message.innerHTML = `
                 Orderan masuk dari <span class="font-bold text-sky-300 uppercase">Meja ${escapeHTML(data.meja)}</span><br>
+                nomor antrian <span class="font-bold text-white">${escapeHTML(data.nomor_antrian || '-')}</span><br>
                 atas nama <span class="font-bold text-white">${escapeHTML(data.nama)}</span>.
             `;
             subtitle.textContent = 'Sedang membacakan pesanan...';
@@ -630,14 +685,14 @@ $jsonFlags = JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP;
         let kalimat = '';
 
         if (current.type === 'pembayaran') {
-            kalimat = `Ada pesanan baru masuk dari meja ${current.meja}, Pembayaran berhasil, atas nama ${current.nama}, menggunakan ${current.metode}. Silakan segera diproses.`;
+            kalimat = `Pembayaran berhasil dari meja ${current.meja}, nomor antrian ${current.nomor_antrian || '-'}, atas nama ${current.nama}. Silakan segera diproses.`;
         } else {
             const metodeLower = String(current.metode || '').toLowerCase();
 
             if (metodeLower.includes('tunai') || metodeLower.includes('cod')) {
-                kalimat = `Ada pesanan baru masuk dari meja ${current.meja}, atas nama ${current.nama}, dengan pembayaran tunai. Silakan terima pembayaran dan segera proses.`;
+                kalimat = `Ada pesanan baru masuk dari meja ${current.meja}, nomor antrian ${current.nomor_antrian || '-'}, atas nama ${current.nama}, dengan pembayaran tunai.`;
             } else {
-                kalimat = `Ada pesanan baru masuk dari meja ${current.meja}, atas nama ${current.nama}, menggunakan ${current.metode}. Pesanan menunggu pembayaran pelanggan.`;
+                kalimat = `Ada pesanan baru masuk dari meja ${current.meja}, nomor antrian ${current.nomor_antrian || '-'}, atas nama ${current.nama}, menggunakan ${current.metode}. Pesanan menunggu pembayaran pelanggan.`;
             }
         }
 
@@ -685,10 +740,12 @@ $jsonFlags = JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP;
         return {
             id: p.id || 0,
             kode_pesanan: p.kode_pesanan || '-',
+            nomor_antrian: p.nomor_antrian || '-',
             nomor_meja: p.nomor_meja || '-',
             nama_pemesan: p.nama_pemesan || '-',
             metode_label: p.metode_label || formatMetodeLabel(p.metode_pembayaran || '-'),
             status: p.status || 'pending',
+            status_pesanan: p.status_pesanan || 'menunggu',
             catatan: p.catatan || '',
             waktu: p.waktu || '-',
             subtotal: subtotal,
@@ -764,6 +821,26 @@ $jsonFlags = JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP;
                     .small {
                         font-size: 10px;
                         line-height: 1.4;
+                    }
+
+                    .queue-box {
+                        border: 2px solid #000;
+                        padding: 6px;
+                        margin: 8px 0;
+                        text-align: center;
+                    }
+
+                    .queue-label {
+                        font-size: 10px;
+                        font-weight: 700;
+                        text-transform: uppercase;
+                    }
+
+                    .queue-number {
+                        font-size: 24px;
+                        line-height: 1;
+                        font-weight: 900;
+                        margin-top: 3px;
                     }
 
                     .line {
@@ -856,7 +933,12 @@ $jsonFlags = JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP;
                 <div class="receipt">
                     <div class="center">
                         <div class="store">${escapeHTML(STORE_NAME)}</div>
-                        <div class="small">Struk Pesanan</div>
+                        <div class="small">Struk Transaksi</div>
+                    </div>
+
+                    <div class="queue-box">
+                        <div class="queue-label">Nomor Antrian</div>
+                        <div class="queue-number">${escapeHTML(data.nomor_antrian)}</div>
                     </div>
 
                     <div class="line"></div>
@@ -918,8 +1000,8 @@ $jsonFlags = JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP;
 
                     <div class="thanks">
                         Terima kasih.<br>
-                        Pesanan Anda telah selesai diproses.<br>
-                        Struk ini menjadi bukti transaksi.
+                        Pesanan telah selesai.<br>
+                        Simpan struk ini sebagai bukti transaksi.
                     </div>
                 </div>
 
@@ -999,14 +1081,17 @@ $jsonFlags = JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP;
         const metode = p.metode_pembayaran || '';
         const metodeLabel = p.metode_label || formatMetodeLabel(metode);
         const status = p.status || p.status_pembayaran || 'pending';
+        const statusPesanan = p.status_pesanan || 'menunggu';
+        const bolehSiap = metode === 'tunai' || status === 'selesai';
+
         const receiptPayload = JSON.stringify(p).replaceAll("'", '&#039;');
 
-        const actionHTML = metode === 'tunai'
+        const actionHTML = bolehSiap
             ? `
-                <form action="<?= base_url('kasir/selesai/') ?>${escapeHTML(p.id)}" method="post" onsubmit='return selesaiDanCetak(event, this, ${receiptPayload})'>
+                <form action="<?= base_url('kasir/siap/') ?>${escapeHTML(p.id)}" method="post" onsubmit='return selesaiDanCetak(event, this, ${receiptPayload})'>
                     <input type="hidden" name="<?= csrf_token() ?>" value="${csrfHash}">
                     <button type="submit" class="w-full inline-flex items-center justify-center gap-2 rounded-2xl bg-emerald-500 hover:bg-emerald-600 px-4 py-2.5 text-xs font-bold text-white transition">
-                        <i class="fa-solid fa-kitchen-set"></i> Siap / Selesai + Cetak
+                        <i class="fa-solid fa-bell-concierge"></i> Pesanan Siap + Cetak
                     </button>
                 </form>
             `
@@ -1020,9 +1105,11 @@ $jsonFlags = JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP;
             <div class="rounded-[1.5rem] border border-sky-400/20 bg-sky-500/[.05] overflow-hidden shadow-soft" data-order-card="${escapeHTML(p.id)}">
                 <div class="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4 px-5 py-4 border-b border-white/10 bg-white/[.025]">
                     <div class="flex items-start gap-4">
-                        <div class="relative mt-1">
-                            <span class="absolute inline-flex h-3 w-3 rounded-full bg-sky-400 opacity-75 animate-ping"></span>
-                            <span class="relative inline-flex rounded-full h-3 w-3 bg-sky-400"></span>
+                        <div class="w-16 h-16 rounded-3xl bg-gradient-to-br from-sky-500 to-purple-600 flex items-center justify-center shadow-glow flex-shrink-0">
+                            <div class="text-center">
+                                <p class="text-[9px] font-black uppercase tracking-widest text-white/70">Antri</p>
+                                <p class="text-lg font-black text-white leading-none">${escapeHTML(p.nomor_antrian || '-')}</p>
+                            </div>
                         </div>
 
                         <div>
@@ -1041,8 +1128,13 @@ $jsonFlags = JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP;
                                 <span class="inline-flex items-center text-[11px] px-2.5 py-1 rounded-full border bg-white/[.04] text-slate-300 border-white/10">
                                     <i class="fa-solid fa-wallet mr-1.5 text-sky-300"></i>${escapeHTML(metodeLabel)}
                                 </span>
+
                                 <span class="inline-flex items-center text-[11px] px-2.5 py-1 rounded-full border ${statusBadgeClass(status)}">
                                     ${escapeHTML(formatStatusLabel(status))}
+                                </span>
+
+                                <span class="inline-flex items-center text-[11px] px-2.5 py-1 rounded-full border ${statusPesananBadgeClass(statusPesanan)}">
+                                    ${escapeHTML(formatStatusPesananLabel(statusPesanan))}
                                 </span>
                             </div>
                         </div>
@@ -1070,44 +1162,32 @@ $jsonFlags = JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP;
     }
 
     function renderRiwayatHTML(p) {
-        const status = p.status || p.status_pembayaran || 'pending';
-        const metode = p.metode_pembayaran || '';
-        const metodeLabel = p.metode_label || formatMetodeLabel(metode);
+        const statusPesanan = p.status_pesanan || 'menunggu';
         const waktu = p.created_waktu || p.waktu || '-';
         const totalFormat = p.total_format || formatRupiah(p.total_harga || 0);
         const receiptPayload = JSON.stringify(p).replaceAll("'", '&#039;');
 
-        const printButton = status === 'selesai'
-            ? `
-                <button type="button"
-                        onclick='cetakStruk(${receiptPayload})'
-                        class="inline-flex items-center justify-center gap-2 rounded-xl bg-sky-500/10 hover:bg-sky-500/20 border border-sky-400/20 px-3 py-2 text-xs font-bold text-sky-300 hover:text-white transition">
-                    <i class="fa-solid fa-print"></i> Cetak
-                </button>
-            `
-            : `<span class="text-xs text-slate-600">-</span>`;
-
         return `
             <tr id="riwayat-order-${escapeHTML(p.id)}" class="hover:bg-white/[.025] bg-emerald-500/[.025] transition">
                 <td class="px-5 py-4 text-slate-400 whitespace-nowrap">${escapeHTML(waktu)}</td>
+                <td class="px-5 py-4 font-black text-sky-300 whitespace-nowrap">${escapeHTML(p.nomor_antrian || '-')}</td>
                 <td class="px-5 py-4 font-bold text-white whitespace-nowrap">${escapeHTML(p.kode_pesanan)}</td>
                 <td class="px-5 py-4 text-slate-300 whitespace-nowrap">Meja ${escapeHTML(p.nomor_meja)}</td>
                 <td class="px-5 py-4 text-slate-300 whitespace-nowrap">${escapeHTML(p.nama_pemesan)}</td>
                 <td class="px-5 py-4 whitespace-nowrap">
-                    <span class="inline-flex items-center text-[11px] px-2.5 py-1 rounded-full border bg-white/[.04] text-slate-300 border-white/10">
-                        ${escapeHTML(metodeLabel)}
-                    </span>
-                </td>
-                <td class="px-5 py-4 whitespace-nowrap">
-                    <span class="inline-flex items-center text-[11px] px-2.5 py-1 rounded-full border ${statusBadgeClass(status)}">
-                        ${escapeHTML(formatStatusLabel(status))}
+                    <span class="inline-flex items-center text-[11px] px-2.5 py-1 rounded-full border ${statusPesananBadgeClass(statusPesanan)}">
+                        ${escapeHTML(formatStatusPesananLabel(statusPesanan))}
                     </span>
                 </td>
                 <td class="px-5 py-4 text-right font-extrabold text-white whitespace-nowrap">
                     Rp ${escapeHTML(totalFormat)}
                 </td>
                 <td class="px-5 py-4 text-right whitespace-nowrap">
-                    ${printButton}
+                    <button type="button"
+                            onclick='cetakStruk(${receiptPayload})'
+                            class="inline-flex items-center justify-center gap-2 rounded-xl bg-sky-500/10 hover:bg-sky-500/20 border border-sky-400/20 px-3 py-2 text-xs font-bold text-sky-300 hover:text-white transition">
+                        <i class="fa-solid fa-print"></i> Cetak
+                    </button>
                 </td>
             </tr>
         `;
@@ -1172,6 +1252,7 @@ $jsonFlags = JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP;
                 antreanTTS.push({
                     type: 'pesanan',
                     meja: p.nomor_meja,
+                    nomor_antrian: p.nomor_antrian || '-',
                     nama: p.nama_pemesan,
                     metode: p.metode_label || formatMetodeLabel(p.metode_pembayaran || ''),
                     total: p.total_harga || 0
@@ -1196,24 +1277,18 @@ $jsonFlags = JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP;
                 const card = document.querySelector(`[data-order-card="${p.id}"]`);
 
                 if (card) {
-                    card.remove();
+                    card.outerHTML = renderOrderHTML(p);
+                } else {
+                    const container = document.getElementById('order-container');
 
-                    const counter = document.getElementById('count-pending');
-
-                    if (counter) {
-                        counter.textContent = Math.max(0, parseInt(counter.textContent || '0') - 1);
+                    if (container) {
+                        container.insertAdjacentHTML('afterbegin', renderOrderHTML(p));
                     }
                 }
 
                 const isNewHistory = tambahRiwayat(p);
 
                 if (isNewHistory) {
-                    const selesaiCounter = document.getElementById('count-selesai');
-
-                    if (selesaiCounter) {
-                        selesaiCounter.textContent = parseInt(selesaiCounter.textContent || '0') + 1;
-                    }
-
                     const pendapatanEl = document.getElementById('pendapatan-hari-ini');
 
                     if (pendapatanEl) {
@@ -1229,6 +1304,7 @@ $jsonFlags = JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP;
                 antreanTTS.push({
                     type: 'pembayaran',
                     meja: p.nomor_meja,
+                    nomor_antrian: p.nomor_antrian || '-',
                     nama: p.nama_pemesan,
                     metode: p.metode_label || formatMetodeLabel(p.metode_pembayaran || ''),
                     total: p.total_harga || 0

@@ -244,18 +244,22 @@ class Order extends BaseController
         $ppn        = (int) floor($totalSetelahDiskon * 0.10);
         $totalHarga = $totalSetelahDiskon + $ppn;
 
-        $kodeP = $this->pesananModel->generateKode();
+        $kodeP         = $this->pesananModel->generateKode();
+        $nomorAntrian = $this->pesananModel->generateNomorAntrian();
 
         $db = db_connect();
         $db->transStart();
 
         $pesananId = $this->pesananModel->insert([
             'kode_pesanan'      => $kodeP,
+            'nomor_antrian'     => $nomorAntrian,
             'meja_id'           => $meja['id'],
             'nama_pemesan'      => $namaPemesan,
             'total_harga'       => $totalHarga,
             'catatan'           => $catatan !== '' ? $catatan : null,
             'status'            => 'pending',
+            'status_pesanan'    => 'menunggu',
+            'waktu_siap'        => null,
             'metode_pembayaran' => $metodePembayaran,
             'kode_promo'        => $kodePromo !== '' ? $kodePromo : null,
             'potongan'          => $potongan,
