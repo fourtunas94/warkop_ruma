@@ -8,6 +8,7 @@ use App\Models\MenuModel;
 use App\Models\KategoriModel;
 use App\Models\PesananModel;
 use App\Models\PesananItemModel;
+use App\Models\PromoModel;
 use Midtrans\Config as MidtransConfig;
 use Midtrans\Snap;
 
@@ -18,6 +19,7 @@ class Order extends BaseController
     protected KategoriModel    $kategoriModel;
     protected PesananModel     $pesananModel;
     protected PesananItemModel $itemModel;
+    protected PromoModel       $promoModel;
 
     public function __construct()
     {
@@ -26,6 +28,7 @@ class Order extends BaseController
         $this->kategoriModel = new KategoriModel();
         $this->pesananModel  = new PesananModel();
         $this->itemModel     = new PesananItemModel();
+        $this->promoModel    = new PromoModel();
     }
 
     private function setupMidtrans(): void
@@ -35,11 +38,6 @@ class Order extends BaseController
         MidtransConfig::$isSanitized  = true;
         MidtransConfig::$is3ds        = true;
 
-        /*
-         * URL notifikasi pembayaran dari Midtrans.
-         * Pastikan app.baseURL di .env hosting:
-         * app.baseURL = 'https://pro.arzana.kitangoding.com'
-         */
         MidtransConfig::$overrideNotifUrl = base_url('order/midtrans-notification');
     }
 
@@ -47,7 +45,7 @@ class Order extends BaseController
     {
         $meja = $this->mejaModel->findByKode($kode);
 
-        if (!$meja) {
+        if (! $meja) {
             return view('order/invalid');
         }
 
@@ -71,9 +69,12 @@ class Order extends BaseController
             }
         }
 
+        $promoModel = new PromoModel();
+
         return view('order/menu', [
             'meja'           => $meja,
             'menuByKategori' => $menuByKategori,
+            'promos'         => $promoModel->getAktifPublic(5),
         ]);
     }
 
@@ -81,91 +82,216 @@ class Order extends BaseController
     {
         $meja = $this->mejaModel->findByKode($kode);
 
-        if (!$meja) {
+        if (! $meja) {
             return view('order/invalid');
         }
 
         return view('order/checkout', [
-            'meja' => $meja
+            'meja' => $meja,
         ]);
+    }
+
+    public function cekPromo(string $kodeUnik)
+    {
+        $meja = $this->mejaModel->findByKode($kodeUnik);
+
+        if (! $meja) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Meja tidak valid.',
+            ]);
+        }
+
+        $kodePromo = strtoupper(trim((string) $this->request->getPost('kode_promo')));
+        $subtotal  = (int) $this->request->getPost('subtotal');
+
+        $result = $this->promoModel->validasiPromo($kodePromo, $subtotal);
+
+        return $this->response->setJSON($result);
     }
 
     public function submit(string $kode)
     {
         $meja = $this->mejaModel->findByKode($kode);
 
-        if (!$meja) {
+        if (! $meja) {
             return $this->response->setJSON([
                 'success' => false,
-                'message' => 'Meja tidak valid.'
+                'message' => 'Meja tidak valid.',
             ]);
         }
 
         $rules = [
             'nama_pemesan'   => 'required|min_length[2]|max_length[100]',
             'items'          => 'required',
-            'payment_method' => 'required|in_list[tunai,qris,transfer]'
+            'payment_method' => 'required|in_list[tunai,qris,transfer]',
         ];
 
-        if (!$this->validate($rules)) {
+        if (! $this->validate($rules)) {
             return $this->response->setJSON([
                 'success' => false,
-                'errors'  => $this->validator->getErrors()
+                'errors'  => $this->validator->getErrors(),
             ]);
         }
 
-        $items = json_decode($this->request->getPost('items'), true);
+        $items = json_decode((string) $this->request->getPost('items'), true);
 
-        if (empty($items) || !is_array($items)) {
+        if (empty($items) || ! is_array($items)) {
             return $this->response->setJSON([
                 'success' => false,
-                'message' => 'Keranjang kosong.'
+                'message' => 'Keranjang kosong.',
             ]);
         }
 
-        $metodePembayaran = $this->request->getPost('payment_method');
-        $kodePromo        = $this->request->getPost('kode_promo');
-        $potongan         = (int) $this->request->getPost('potongan');
+        $metodePembayaran = (string) $this->request->getPost('payment_method');
+        $kodePromo        = strtoupper(trim((string) $this->request->getPost('kode_promo')));
+        $namaPemesan      = trim((string) $this->request->getPost('nama_pemesan'));
+        $catatan          = trim((string) $this->request->getPost('catatan'));
 
-        $subTotal = 0;
+        /*
+         * Penting:
+         * Harga tidak boleh percaya dari JavaScript/localStorage.
+         * Server ambil ulang harga dari database menu.
+         */
+        $cleanItems = [];
+        $subTotal   = 0;
 
         foreach ($items as $item) {
-            $harga = (int) ($item['harga'] ?? 0);
-            $qty   = (int) ($item['qty'] ?? 0);
+            $menuId = (int) ($item['id'] ?? 0);
+            $qty    = (int) ($item['qty'] ?? 0);
+
+            if ($menuId <= 0 || $qty <= 0) {
+                continue;
+            }
+
+            $menu = $this->menuModel->find($menuId);
+
+            if (! $menu) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Salah satu menu tidak ditemukan.',
+                ]);
+            }
+
+            if ((int) ($menu['is_active'] ?? 1) !== 1) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Menu "' . ($menu['nama_menu'] ?? '-') . '" sedang tidak aktif.',
+                ]);
+            }
+
+            if ((int) ($menu['stok'] ?? 1) !== 1) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Menu "' . ($menu['nama_menu'] ?? '-') . '" sedang habis.',
+                ]);
+            }
+
+            $harga = (int) ($menu['harga'] ?? 0);
+
+            if ($harga < 0) {
+                $harga = 0;
+            }
+
+            $cleanItems[] = [
+                'id'        => $menuId,
+                'nama_menu' => $menu['nama_menu'] ?? '-',
+                'harga'     => $harga,
+                'qty'       => $qty,
+                'catatan'   => $item['catatan'] ?? null,
+            ];
 
             $subTotal += $harga * $qty;
         }
 
-        $totalHarga = (int) max(0, $subTotal - $potongan);
-        $kodeP      = $this->pesananModel->generateKode();
+        if (empty($cleanItems) || $subTotal <= 0) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Keranjang tidak valid.',
+            ]);
+        }
+
+        /*
+         * Promo dihitung ulang di server.
+         * Jangan percaya nilai potongan dari JavaScript.
+         */
+        $potongan = 0;
+        $promoId  = null;
+
+        if ($kodePromo !== '') {
+            $hasilPromo = $this->promoModel->validasiPromo($kodePromo, $subTotal);
+
+            if (! ($hasilPromo['success'] ?? false)) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => $hasilPromo['message'] ?? 'Kode promo tidak valid.',
+                ]);
+            }
+
+            $potongan = (int) ($hasilPromo['potongan'] ?? 0);
+
+            $promo = $this->promoModel->findByKode($kodePromo);
+            if ($promo) {
+                $promoId = (int) $promo['id'];
+            }
+        }
+
+        $totalSetelahDiskon = max(0, $subTotal - $potongan);
+
+        /*
+         * PPN 10% dari total setelah diskon.
+         */
+        $ppn        = (int) floor($totalSetelahDiskon * 0.10);
+        $totalHarga = $totalSetelahDiskon + $ppn;
+
+        $kodeP = $this->pesananModel->generateKode();
+
+        $db = db_connect();
+        $db->transStart();
 
         $pesananId = $this->pesananModel->insert([
             'kode_pesanan'      => $kodeP,
             'meja_id'           => $meja['id'],
-            'nama_pemesan'      => $this->request->getPost('nama_pemesan'),
+            'nama_pemesan'      => $namaPemesan,
             'total_harga'       => $totalHarga,
-            'catatan'           => $this->request->getPost('catatan'),
+            'catatan'           => $catatan !== '' ? $catatan : null,
             'status'            => 'pending',
             'metode_pembayaran' => $metodePembayaran,
-            'kode_promo'        => empty($kodePromo) ? null : $kodePromo,
-            'potongan'          => $potongan
+            'kode_promo'        => $kodePromo !== '' ? $kodePromo : null,
+            'potongan'          => $potongan,
+            'ppn'               => $ppn,
         ]);
 
-        if (!$pesananId) {
+        if (! $pesananId) {
+            $db->transRollback();
+
             return $this->response->setJSON([
                 'success' => false,
-                'message' => 'Gagal menyimpan pesanan.'
+                'message' => 'Gagal menyimpan pesanan.',
             ]);
         }
 
-        foreach ($items as $item) {
+        foreach ($cleanItems as $item) {
             $this->itemModel->insert([
                 'pesanan_id' => $pesananId,
-                'menu_id'    => $item['id'] ?? null,
+                'menu_id'    => $item['id'],
                 'nama_menu'  => $item['nama_menu'],
-                'harga'      => (int) $item['harga'],
-                'qty'        => (int) $item['qty'],
-                'catatan'    => $item['catatan'] ?? null,
+                'harga'      => $item['harga'],
+                'qty'        => $item['qty'],
+                'catatan'    => $item['catatan'],
+            ]);
+        }
+
+        if ($promoId !== null) {
+            $this->promoModel->tambahJumlahDigunakan($promoId);
+        }
+
+        $db->transComplete();
+
+        if ($db->transStatus() === false) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Gagal menyimpan transaksi.',
             ]);
         }
 
@@ -209,7 +335,7 @@ class Order extends BaseController
         if (empty($serverKey)) {
             return $this->response->setJSON([
                 'success' => false,
-                'message' => 'Konfigurasi Midtrans belum lengkap. Isi MIDTRANS_SERVER_KEY di file .env.'
+                'message' => 'Konfigurasi Midtrans belum lengkap. Isi MIDTRANS_SERVER_KEY di file .env.',
             ]);
         }
 
@@ -235,8 +361,6 @@ class Order extends BaseController
             ];
         }
 
-        $namaPemesan = trim((string) $this->request->getPost('nama_pemesan'));
-
         $params = [
             'transaction_details' => [
                 'order_id'     => $kodeP,
@@ -253,7 +377,7 @@ class Order extends BaseController
                     'price'    => $totalHarga,
                     'quantity' => 1,
                     'name'     => 'Pesanan Arzana - Meja ' . $meja['nomor_meja'],
-                ]
+                ],
             ],
             'enabled_payments' => $enabledPayments,
             'callbacks' => [
@@ -271,7 +395,7 @@ class Order extends BaseController
 
             $redirectUrl = $transaction->redirect_url ?? null;
 
-            if (!$redirectUrl) {
+            if (! $redirectUrl) {
                 log_message('error', 'MIDTRANS REDIRECT URL EMPTY: ' . json_encode($transaction));
 
                 return $this->response->setJSON([
@@ -285,7 +409,6 @@ class Order extends BaseController
                 'success'  => true,
                 'redirect' => $redirectUrl,
             ]);
-
         } catch (\Exception $e) {
             log_message('error', 'MIDTRANS CREATE TRANSACTION ERROR: ' . $e->getMessage());
 
@@ -302,7 +425,7 @@ class Order extends BaseController
             ->where('kode_pesanan', $kode)
             ->first();
 
-        if (!$pesanan) {
+        if (! $pesanan) {
             return redirect()->to('/');
         }
 
@@ -333,7 +456,7 @@ class Order extends BaseController
 
         log_message('info', 'MIDTRANS NOTIFICATION RAW: ' . $rawBody);
 
-        if (empty($notif) || !is_array($notif)) {
+        if (empty($notif) || ! is_array($notif)) {
             return $this->response
                 ->setStatusCode(400)
                 ->setBody('INVALID NOTIFICATION');
@@ -355,13 +478,9 @@ class Order extends BaseController
                 ->setBody('REQUIRED FIELD EMPTY');
         }
 
-        /*
-         * Validasi signature Midtrans:
-         * SHA512(order_id + status_code + gross_amount + server_key)
-         */
         $calculatedSignature = hash('sha512', $orderId . $statusCode . $grossAmount . $serverKey);
 
-        if (!hash_equals($calculatedSignature, $signatureKey)) {
+        if (! hash_equals($calculatedSignature, $signatureKey)) {
             log_message('error', 'MIDTRANS INVALID SIGNATURE FOR ORDER: ' . $orderId);
 
             return $this->response
@@ -373,21 +492,13 @@ class Order extends BaseController
             ->where('kode_pesanan', $orderId)
             ->first();
 
-        if (!$pesanan) {
+        if (! $pesanan) {
             log_message('error', 'MIDTRANS ORDER NOT FOUND: ' . $orderId);
 
             return $this->response
                 ->setStatusCode(404)
                 ->setBody('ORDER NOT FOUND');
         }
-
-        /*
-         * Status Midtrans:
-         * settlement = pembayaran berhasil
-         * capture    = pembayaran kartu kredit berhasil
-         * pending    = belum dibayar
-         * deny/expire/cancel/failure = gagal / batal / expired
-         */
 
         if ($transactionStatus === 'settlement') {
             $this->pesananModel
@@ -397,7 +508,6 @@ class Order extends BaseController
                     'updated_at' => date('Y-m-d H:i:s'),
                 ])
                 ->update();
-
         } elseif ($transactionStatus === 'capture') {
             if ($paymentType === 'credit_card') {
                 if ($fraudStatus === 'accept') {
@@ -418,7 +528,6 @@ class Order extends BaseController
                     ])
                     ->update();
             }
-
         } elseif ($transactionStatus === 'pending') {
             $this->pesananModel
                 ->where('kode_pesanan', $orderId)
@@ -427,14 +536,7 @@ class Order extends BaseController
                     'updated_at' => date('Y-m-d H:i:s'),
                 ])
                 ->update();
-
         } elseif (in_array($transactionStatus, ['deny', 'expire', 'cancel', 'failure'], true)) {
-            /*
-             * Supaya aman dengan struktur status yang sudah ada,
-             * sementara kita biarkan pending.
-             * Kalau tabel kamu punya status "dibatalkan",
-             * bagian ini boleh diganti menjadi status dibatalkan.
-             */
             $this->pesananModel
                 ->where('kode_pesanan', $orderId)
                 ->set([

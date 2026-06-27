@@ -279,6 +279,14 @@ $isActive = static function (string $path) {
                         </span>
                         <span>User Kasir</span>
                     </a>
+                    
+                    <a href="<?= base_url('admin/promo') ?>"
+                        class="nav-link <?= $isActive('admin/promo') ? 'active' : '' ?> flex items-center gap-3 px-3 py-3 rounded-2xl text-sm text-slate-300">
+                        <span class="nav-icon w-9 h-9 rounded-xl bg-white/5 flex items-center justify-center text-slate-300 transition">
+                            <i class="fa-solid fa-gift"></i>
+                        </span>
+                        <span>Promo</span>
+                    </a>
                 </div>
             </div>
 

@@ -26,6 +26,36 @@ if (! empty($storeWhatsapp)) {
     $waText   = 'Halo, saya pelanggan meja ' . $nomorMeja . ' ingin bertanya.';
     $whatsappUrl = 'https://wa.me/' . $waNumber . '?text=' . rawurlencode($waText);
 }
+
+$promos = $promos ?? [];
+
+$formatRupiah = static function ($value): string {
+    return 'Rp ' . number_format((int) $value, 0, ',', '.');
+};
+
+$promoDiskonLabel = static function (array $promo) use ($formatRupiah): string {
+    if (($promo['tipe_diskon'] ?? '') === 'persen') {
+        $label = 'Diskon ' . (int) ($promo['nilai_diskon'] ?? 0) . '%';
+
+        if ((int) ($promo['maksimal_diskon'] ?? 0) > 0) {
+            $label .= ' maks. ' . $formatRupiah($promo['maksimal_diskon']);
+        }
+
+        return $label;
+    }
+
+    return 'Potongan ' . $formatRupiah($promo['nilai_diskon'] ?? 0);
+};
+
+$promoSyaratLabel = static function (array $promo) use ($formatRupiah): string {
+    $minimal = (int) ($promo['minimal_belanja'] ?? 0);
+
+    if ($minimal > 0) {
+        return 'Min. belanja ' . $formatRupiah($minimal);
+    }
+
+    return 'Tanpa minimal belanja';
+};
 ?>
 
 <!DOCTYPE html>
@@ -58,7 +88,7 @@ if (! empty($storeWhatsapp)) {
             --emerald: #22c55e;
             --amber: #f59e0b;
             --gradient: linear-gradient(135deg, #0ea5e9, #7c3aed);
-            --shadow: 0 20px 60px rgba(0, 0, 0, .38);
+            --shadow: 0 16px 46px rgba(0, 0, 0, .34);
         }
 
         * {
@@ -113,7 +143,7 @@ if (! empty($storeWhatsapp)) {
             position: sticky;
             top: 0;
             z-index: 30;
-            padding: 16px 16px 12px;
+            padding: 14px 14px 11px;
             background: rgba(2, 6, 23, .76);
             backdrop-filter: blur(18px);
             -webkit-backdrop-filter: blur(18px);
@@ -130,14 +160,14 @@ if (! empty($storeWhatsapp)) {
         .brand {
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 11px;
             min-width: 0;
         }
 
         .logo-box {
-            width: 46px;
-            height: 46px;
-            border-radius: 18px;
+            width: 43px;
+            height: 43px;
+            border-radius: 17px;
             background: rgba(255,255,255,.06);
             border: 1px solid rgba(255,255,255,.10);
             display: flex;
@@ -145,20 +175,20 @@ if (! empty($storeWhatsapp)) {
             justify-content: center;
             overflow: hidden;
             flex-shrink: 0;
-            box-shadow: 0 0 35px rgba(14,165,233,.18);
+            box-shadow: 0 0 30px rgba(14,165,233,.15);
         }
 
         .logo-box img {
-            width: 38px;
-            height: 38px;
+            width: 35px;
+            height: 35px;
             object-fit: contain;
         }
 
         .logo-fallback {
             display: none;
-            width: 38px;
-            height: 38px;
-            border-radius: 14px;
+            width: 35px;
+            height: 35px;
+            border-radius: 13px;
             background: var(--gradient);
             align-items: center;
             justify-content: center;
@@ -170,9 +200,9 @@ if (! empty($storeWhatsapp)) {
         }
 
         .brand-info h1 {
-            font-size: 17px;
-            font-weight: 800;
-            line-height: 1.2;
+            font-size: 15.5px;
+            font-weight: 900;
+            line-height: 1.15;
             color: #fff;
             white-space: nowrap;
             overflow: hidden;
@@ -181,20 +211,20 @@ if (! empty($storeWhatsapp)) {
         }
 
         .brand-info p {
-            font-size: 12px;
+            font-size: 11px;
             color: var(--muted);
             margin-top: 3px;
         }
 
         .brand-info p span {
             color: #fde047;
-            font-weight: 800;
+            font-weight: 900;
         }
 
         .header-action {
-            width: 42px;
-            height: 42px;
-            border-radius: 16px;
+            width: 39px;
+            height: 39px;
+            border-radius: 15px;
             background: rgba(255,255,255,.055);
             border: 1px solid rgba(255,255,255,.10);
             color: var(--muted);
@@ -212,17 +242,17 @@ if (! empty($storeWhatsapp)) {
         }
 
         .hero {
-            padding: 18px 16px 16px;
+            padding: 14px 10px 12px;
         }
 
         .hero-card {
             position: relative;
             overflow: hidden;
-            border-radius: 28px;
+            border-radius: 24px;
             background: rgba(255,255,255,.045);
             border: 1px solid rgba(255,255,255,.10);
             box-shadow: var(--shadow);
-            padding: 18px;
+            padding: 14px;
         }
 
         .hero-card::before {
@@ -230,10 +260,10 @@ if (! empty($storeWhatsapp)) {
             position: absolute;
             right: -60px;
             top: -70px;
-            width: 180px;
-            height: 180px;
+            width: 160px;
+            height: 160px;
             background: rgba(14,165,233,.22);
-            filter: blur(38px);
+            filter: blur(34px);
             border-radius: 50%;
         }
 
@@ -242,10 +272,10 @@ if (! empty($storeWhatsapp)) {
             position: absolute;
             left: -80px;
             bottom: -80px;
-            width: 200px;
-            height: 200px;
+            width: 180px;
+            height: 180px;
             background: rgba(124,58,237,.18);
-            filter: blur(42px);
+            filter: blur(38px);
             border-radius: 50%;
         }
 
@@ -257,63 +287,228 @@ if (! empty($storeWhatsapp)) {
         .badge {
             display: inline-flex;
             align-items: center;
-            gap: 7px;
-            padding: 7px 11px;
+            gap: 6px;
+            padding: 5px 9px;
             border-radius: 999px;
             background: rgba(34,197,94,.10);
             border: 1px solid rgba(34,197,94,.20);
             color: #86efac;
-            font-size: 11px;
-            font-weight: 800;
-            margin-bottom: 12px;
+            font-size: 10px;
+            font-weight: 900;
+            margin-bottom: 9px;
         }
 
         .badge-dot {
-            width: 7px;
-            height: 7px;
+            width: 6px;
+            height: 6px;
             border-radius: 50%;
             background: #22c55e;
-            box-shadow: 0 0 0 5px rgba(34,197,94,.10);
+            box-shadow: 0 0 0 4px rgba(34,197,94,.10);
         }
 
         .hero-title {
-            font-size: 24px;
+            font-size: 20px;
             line-height: 1.16;
             font-weight: 900;
-            letter-spacing: -.04em;
+            letter-spacing: -.045em;
             color: #fff;
+            max-width: 95%;
         }
 
         .hero-desc {
-            font-size: 13px;
-            line-height: 1.6;
+            font-size: 12px;
+            line-height: 1.5;
             color: var(--muted);
-            margin-top: 8px;
+            margin-top: 7px;
+        }
+
+        .promo-slider {
+            margin-top: 12px;
+            overflow: hidden;
+            border-radius: 19px;
+            border: 1px solid rgba(255,255,255,.10);
+            background: rgba(2,6,23,.34);
+            position: relative;
+            min-height: 78px;
+        }
+
+        .promo-slider::before,
+        .promo-slider::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            width: 34px;
+            height: 100%;
+            z-index: 2;
+            pointer-events: none;
+        }
+
+        .promo-slider::before {
+            left: 0;
+            background: linear-gradient(to right, rgba(2,6,23,.95), transparent);
+        }
+
+        .promo-slider::after {
+            right: 0;
+            background: linear-gradient(to left, rgba(2,6,23,.95), transparent);
+        }
+
+        .promo-track {
+            display: flex;
+            width: max-content;
+            animation: promoMarquee 18s linear infinite;
+            will-change: transform;
+        }
+
+        .promo-slider:hover .promo-track {
+            animation-play-state: paused;
+        }
+
+        .promo-group {
+            display: flex;
+            gap: 8px;
+            flex-shrink: 0;
+            padding: 8px 8px 8px 0;
+        }
+
+        .promo-group:first-child {
+            padding-left: 8px;
+        }
+
+        .promo-card {
+            width: 190px;
+            min-height: 62px;
+            flex-shrink: 0;
+            border-radius: 16px;
+            padding: 9px;
+            background:
+                radial-gradient(circle at top right, rgba(244,63,94,.22), transparent 6rem),
+                linear-gradient(135deg, rgba(14,165,233,.14), rgba(124,58,237,.13));
+            border: 1px solid rgba(255,255,255,.12);
+            display: flex;
+            align-items: center;
+            gap: 9px;
+        }
+
+        .promo-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 13px;
+            background: rgba(255,255,255,.12);
+            border: 1px solid rgba(255,255,255,.13);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fde047;
+            flex-shrink: 0;
+            box-shadow: 0 0 22px rgba(253,224,71,.10);
+        }
+
+        .promo-icon i {
+            font-size: 13px;
+        }
+
+        .promo-info {
+            min-width: 0;
+        }
+
+        .promo-code {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            max-width: 118px;
+            font-size: 9px;
+            font-weight: 900;
+            color: #fce7f3;
+            background: rgba(244,63,94,.16);
+            border: 1px solid rgba(244,63,94,.25);
+            padding: 3px 7px;
+            border-radius: 999px;
+            margin-bottom: 4px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .promo-info h3 {
+            font-size: 11px;
+            font-weight: 900;
+            line-height: 1.2;
+            color: #fff;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 128px;
+        }
+
+        .promo-info p {
+            font-size: 9.5px;
+            color: #cbd5e1;
+            line-height: 1.3;
+            margin-top: 3px;
+        }
+
+        .promo-info p span {
+            color: #86efac;
+            font-weight: 900;
+        }
+
+        .promo-empty-card {
+            width: 100%;
+            min-height: 66px;
+            padding: 10px;
+            border-radius: 16px;
+            background: rgba(255,255,255,.045);
+            border: 1px dashed rgba(255,255,255,.12);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: var(--muted);
+        }
+
+        .promo-empty-card i {
+            color: #7dd3fc;
+            font-size: 14px;
+        }
+
+        .promo-empty-card p {
+            font-size: 11px;
+            line-height: 1.4;
+        }
+
+        @keyframes promoMarquee {
+            0% {
+                transform: translateX(0);
+            }
+
+            100% {
+                transform: translateX(-50%);
+            }
         }
 
         .hero-meta {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 10px;
-            margin-top: 16px;
+            gap: 9px;
+            margin-top: 12px;
         }
 
         .meta-card {
-            border-radius: 20px;
+            border-radius: 18px;
             background: rgba(255,255,255,.045);
             border: 1px solid rgba(255,255,255,.08);
-            padding: 12px;
+            padding: 10px;
         }
 
         .meta-card span {
             display: block;
-            font-size: 11px;
+            font-size: 10.5px;
             color: var(--muted-2);
             margin-bottom: 4px;
         }
 
         .meta-card strong {
-            font-size: 13px;
+            font-size: 12.5px;
             color: #fff;
         }
 
@@ -322,28 +517,28 @@ if (! empty($storeWhatsapp)) {
             align-items: end;
             justify-content: space-between;
             gap: 12px;
-            padding: 4px 16px 12px;
+            padding: 3px 10px 10px;
         }
 
         .section-head h2 {
-            font-size: 18px;
+            font-size: 17px;
             font-weight: 900;
             letter-spacing: -.02em;
         }
 
         .section-head p {
-            font-size: 12px;
+            font-size: 11.5px;
             color: var(--muted-2);
-            margin-top: 2px;
+            margin-top: 1px;
         }
 
         .cat-list {
             display: flex;
-            gap: 10px;
+            gap: 9px;
             overflow-x: auto;
             scrollbar-width: none;
             -ms-overflow-style: none;
-            padding: 0 16px 18px;
+            padding: 0 10px 15px;
         }
 
         .cat-list::-webkit-scrollbar {
@@ -354,10 +549,10 @@ if (! empty($storeWhatsapp)) {
             border: 1px solid rgba(255,255,255,.10);
             background: rgba(255,255,255,.055);
             color: #cbd5e1;
-            padding: 10px 15px;
-            border-radius: 16px;
-            font-size: 12px;
-            font-weight: 800;
+            padding: 9px 14px;
+            border-radius: 15px;
+            font-size: 11.5px;
+            font-weight: 900;
             white-space: nowrap;
             cursor: pointer;
             transition: .2s ease;
@@ -378,8 +573,8 @@ if (! empty($storeWhatsapp)) {
         .menu-grid {
             display: grid;
             grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 14px;
-            padding: 0 16px;
+            gap: 12px;
+            padding: 0 10px;
         }
 
         .menu-card {
@@ -387,11 +582,11 @@ if (! empty($storeWhatsapp)) {
             overflow: hidden;
             background: rgba(255,255,255,.055);
             border: 1px solid rgba(255,255,255,.10);
-            border-radius: 24px;
+            border-radius: 22px;
             min-height: 100%;
             display: flex;
             flex-direction: column;
-            box-shadow: 0 18px 46px rgba(0,0,0,.22);
+            box-shadow: 0 16px 40px rgba(0,0,0,.20);
         }
 
         .img-wrap {
@@ -450,19 +645,19 @@ if (! empty($storeWhatsapp)) {
         }
 
         .menu-content {
-            padding: 13px;
+            padding: 12px;
             display: flex;
             flex-direction: column;
-            gap: 10px;
+            gap: 9px;
             flex: 1;
         }
 
         .item-title {
-            font-size: 13px;
+            font-size: 12.5px;
             line-height: 1.35;
-            font-weight: 850;
+            font-weight: 900;
             color: #fff;
-            min-height: 36px;
+            min-height: 34px;
             display: -webkit-box;
             -webkit-line-clamp: 2;
             -webkit-box-orient: vertical;
@@ -470,10 +665,10 @@ if (! empty($storeWhatsapp)) {
         }
 
         .item-desc {
-            font-size: 11px;
+            font-size: 10.5px;
             line-height: 1.45;
             color: var(--muted-2);
-            min-height: 32px;
+            min-height: 30px;
             display: -webkit-box;
             -webkit-line-clamp: 2;
             -webkit-box-orient: vertical;
@@ -489,7 +684,7 @@ if (! empty($storeWhatsapp)) {
         }
 
         .item-price {
-            font-size: 12px;
+            font-size: 11.5px;
             font-weight: 900;
             color: #f8fafc;
             white-space: nowrap;
@@ -504,12 +699,12 @@ if (! empty($storeWhatsapp)) {
         }
 
         .icon-btn {
-            width: 31px;
-            height: 31px;
+            width: 30px;
+            height: 30px;
             border: 0;
             border-radius: 999px;
             color: #fff;
-            font-size: 13px;
+            font-size: 12px;
             display: inline-flex;
             align-items: center;
             justify-content: center;
@@ -534,7 +729,7 @@ if (! empty($storeWhatsapp)) {
         .item-qty {
             min-width: 18px;
             text-align: center;
-            font-size: 13px;
+            font-size: 12px;
             font-weight: 900;
             color: #fff;
         }
@@ -695,25 +890,99 @@ if (! empty($storeWhatsapp)) {
         }
 
         @media (max-width: 380px) {
+            .hero {
+                padding: 12px 8px 10px;
+            }
+
+            .hero-card {
+                padding: 12px;
+                border-radius: 22px;
+            }
+
+            .hero-title {
+                font-size: 18.5px;
+            }
+
+            .hero-desc {
+                font-size: 11.5px;
+            }
+
+            .promo-slider {
+                margin-top: 10px;
+                min-height: 72px;
+                border-radius: 17px;
+            }
+
+            .promo-card {
+                width: 172px;
+                min-height: 58px;
+                padding: 8px;
+                gap: 8px;
+                border-radius: 15px;
+            }
+
+            .promo-icon {
+                width: 29px;
+                height: 29px;
+                border-radius: 12px;
+            }
+
+            .promo-icon i {
+                font-size: 12px;
+            }
+
+            .promo-code {
+                max-width: 106px;
+                font-size: 8.5px;
+                padding: 3px 6px;
+                margin-bottom: 3px;
+            }
+
+            .promo-info h3 {
+                font-size: 10.5px;
+                max-width: 116px;
+            }
+
+            .promo-info p {
+                font-size: 9px;
+            }
+
+            .promo-track {
+                animation-duration: 15s;
+            }
+
+            .hero-meta {
+                margin-top: 10px;
+                gap: 8px;
+            }
+
+            .meta-card {
+                padding: 9px;
+                border-radius: 16px;
+            }
+
+            .meta-card span {
+                font-size: 10px;
+            }
+
+            .meta-card strong {
+                font-size: 12px;
+            }
+
             .menu-grid {
                 gap: 12px;
-                padding-inline: 12px;
+                padding-inline: 8px;
             }
 
             .header,
-            .hero,
             .section-head,
             .cat-list {
-                padding-left: 12px;
-                padding-right: 12px;
+                padding-left: 8px;
+                padding-right: 8px;
             }
 
             .brand-info h1 {
                 max-width: 190px;
-            }
-
-            .hero-title {
-                font-size: 22px;
             }
 
             .item-title {
@@ -790,6 +1059,69 @@ if (! empty($storeWhatsapp)) {
                 <p class="hero-desc">
                     <?= esc($storeDescription ?: 'Tambahkan menu ke keranjang, lalu lanjut checkout untuk mengirim pesanan ke kasir.') ?>
                 </p>
+
+                <?php if (! empty($promos)): ?>
+                    <div class="promo-slider" aria-label="Promo tersedia">
+                        <div class="promo-track">
+                            <div class="promo-group">
+                                <?php foreach ($promos as $promo): ?>
+                                    <div class="promo-card">
+                                        <div class="promo-icon">
+                                            <i class="fa-solid fa-gift"></i>
+                                        </div>
+
+                                        <div class="promo-info">
+                                            <div class="promo-code">
+                                                <i class="fa-solid fa-ticket"></i>
+                                                <?= esc($promo['kode'] ?? '-') ?>
+                                            </div>
+
+                                            <h3><?= esc($promo['nama_promo'] ?? 'Promo Spesial') ?></h3>
+
+                                            <p>
+                                                <span><?= esc($promoDiskonLabel($promo)) ?></span><br>
+                                                <?= esc($promoSyaratLabel($promo)) ?>
+                                            </p>
+                                        </div>
+                                    </div>
+                                <?php endforeach; ?>
+                            </div>
+
+                            <div class="promo-group" aria-hidden="true">
+                                <?php foreach ($promos as $promo): ?>
+                                    <div class="promo-card">
+                                        <div class="promo-icon">
+                                            <i class="fa-solid fa-gift"></i>
+                                        </div>
+
+                                        <div class="promo-info">
+                                            <div class="promo-code">
+                                                <i class="fa-solid fa-ticket"></i>
+                                                <?= esc($promo['kode'] ?? '-') ?>
+                                            </div>
+
+                                            <h3><?= esc($promo['nama_promo'] ?? 'Promo Spesial') ?></h3>
+
+                                            <p>
+                                                <span><?= esc($promoDiskonLabel($promo)) ?></span><br>
+                                                <?= esc($promoSyaratLabel($promo)) ?>
+                                            </p>
+                                        </div>
+                                    </div>
+                                <?php endforeach; ?>
+                            </div>
+                        </div>
+                    </div>
+                <?php else: ?>
+                    <div class="promo-slider">
+                        <div class="promo-empty-card">
+                            <i class="fa-solid fa-bullhorn"></i>
+                            <p>
+                                Belum ada promo aktif saat ini. Cek kembali nanti untuk voucher terbaru.
+                            </p>
+                        </div>
+                    </div>
+                <?php endif; ?>
 
                 <div class="hero-meta">
                     <div class="meta-card">

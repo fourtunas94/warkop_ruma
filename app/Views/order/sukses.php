@@ -513,20 +513,12 @@ if (! empty($storeWhatsapp)) {
             </div>
 
             <?php if ($isSelesai): ?>
-                <div class="icon-circle icon-success">
-                    <i class="fa-solid fa-check"></i>
-                </div>
-
                 <h1 class="status-title">Pesanan Diproses!</h1>
 
                 <p class="status-desc">
                     Pembayaran berhasil. Pesanan kamu sudah bisa segera diproses oleh kasir atau dapur.
                 </p>
             <?php else: ?>
-                <div class="icon-circle icon-pending">
-                    <i class="fa-solid fa-clock"></i>
-                </div>
-
                 <h1 class="status-title">Menunggu Pembayaran</h1>
 
                 <p class="status-desc">

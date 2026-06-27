@@ -1,319 +1,513 @@
+<?php
+helper('app_setting');
+
+$storeName        = app_setting('store_name', 'ARZANA');
+$storeLogo        = app_setting('store_logo', '');
+$storeFavicon     = app_setting('store_favicon', '');
+$storeDescription = app_setting('store_description', 'Sistem Pemesanan QR Code');
+$footerText       = app_setting('footer_text', 'Powered by KITA NGODING');
+
+$logoSrc = ! empty($storeLogo)
+    ? base_url($storeLogo)
+    : base_url('assets/img/logo_k.png');
+
+$faviconPath = ! empty($storeFavicon)
+    ? $storeFavicon
+    : (! empty($storeLogo) ? $storeLogo : 'assets/img/logo_k.png');
+
+$faviconSrc = base_url($faviconPath);
+?>
+
 <!DOCTYPE html>
 <html lang="id">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login — ARZANA</title>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+    <title>Login — <?= esc($storeName) ?></title>
+
+    <link rel="icon" type="image/png" href="<?= esc($faviconSrc) ?>">
+
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
     <style>
         :root {
-            --bg-dark: #0a0e17;
-            --card-dark: #131824;
-            --text-light: #ffffff;
-            --text-dim: #8a94a6;
-            --btn-blue: #0066ff;
-            --cart-grad: linear-gradient(90deg, #007bff, #8a2be2);
-            --input-bg: #1a2030;
-            --border-subtle: rgba(255, 255, 255, 0.07);
+            --bg: #020617;
+            --bg-soft: #07111f;
+            --card: rgba(255, 255, 255, .055);
+            --card-strong: rgba(255, 255, 255, .08);
+            --border: rgba(255, 255, 255, .10);
+            --text: #ffffff;
+            --muted: #94a3b8;
+            --muted-2: #64748b;
+            --sky: #0ea5e9;
+            --purple: #7c3aed;
+            --rose: #f43f5e;
+            --emerald: #22c55e;
+            --gradient: linear-gradient(135deg, #0ea5e9, #7c3aed);
+            --shadow: 0 24px 80px rgba(0, 0, 0, .42);
         }
 
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: 'Poppins', sans-serif;
+            font-family: 'Plus Jakarta Sans', sans-serif;
         }
 
         body {
-            background-color: var(--bg-dark);
-            color: var(--text-light);
-            -webkit-font-smoothing: antialiased;
             min-height: 100vh;
+            background:
+                radial-gradient(circle at top left, rgba(14, 165, 233, .22), transparent 24rem),
+                radial-gradient(circle at top right, rgba(124, 58, 237, .20), transparent 24rem),
+                linear-gradient(135deg, #020617 0%, #07111f 48%, #020617 100%);
+            color: var(--text);
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 20px;
+            padding: 24px 16px;
+            -webkit-font-smoothing: antialiased;
+        }
 
-            /* Subtle radial glow di background */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
             background-image:
-                radial-gradient(ellipse 60% 50% at 50% 0%, rgba(0, 102, 255, 0.08) 0%, transparent 70%),
-                radial-gradient(ellipse 40% 30% at 80% 80%, rgba(138, 43, 226, 0.06) 0%, transparent 60%);
+                linear-gradient(rgba(255,255,255,.025) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,255,255,.025) 1px, transparent 1px);
+            background-size: 42px 42px;
+            mask-image: linear-gradient(to bottom, rgba(0,0,0,.9), rgba(0,0,0,.18));
+            z-index: 0;
+        }
+
+        button,
+        input {
+            -webkit-tap-highlight-color: transparent;
         }
 
         .login-wrapper {
             width: 100%;
-            max-width: 400px;
+            max-width: 430px;
+            position: relative;
+            z-index: 1;
         }
 
-        /* --- Branding di atas card --- */
         .brand {
             display: flex;
             align-items: center;
-            gap: 12px;
-            margin-bottom: 28px;
             justify-content: center;
+            gap: 13px;
+            margin-bottom: 24px;
         }
 
         .brand-logo {
-            width: 42px;
-            height: 42px;
+            width: 58px;
+            height: 58px;
+            border-radius: 22px;
+            background: rgba(255,255,255,.06);
+            border: 1px solid rgba(255,255,255,.10);
             display: flex;
             align-items: center;
             justify-content: center;
+            overflow: hidden;
+            box-shadow: 0 0 40px rgba(14,165,233,.16);
+            flex-shrink: 0;
         }
 
         .brand-logo img {
-            width: 100%;
-            height: 100%;
+            width: 48px;
+            height: 48px;
             object-fit: contain;
         }
 
+        .logo-fallback {
+            display: none;
+            width: 48px;
+            height: 48px;
+            border-radius: 18px;
+            background: var(--gradient);
+            align-items: center;
+            justify-content: center;
+            color: white;
+        }
+
+        .brand-info {
+            min-width: 0;
+        }
+
         .brand-info h1 {
-            font-size: 20px;
-            font-weight: 700;
-            letter-spacing: 0.5px;
-            color: var(--text-light);
+            font-size: 22px;
+            font-weight: 900;
+            color: #fff;
+            letter-spacing: -.03em;
+            line-height: 1.15;
         }
 
         .brand-info p {
             font-size: 12px;
-            color: var(--text-dim);
-            margin-top: 1px;
+            color: var(--muted);
+            margin-top: 4px;
         }
 
-        /* --- Card --- */
         .card {
-            background-color: var(--card-dark);
-            border-radius: 18px;
-            border: 1px solid var(--border-subtle);
-            padding: 32px 28px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+            position: relative;
+            overflow: hidden;
+            background: rgba(255,255,255,.045);
+            border: 1px solid rgba(255,255,255,.10);
+            border-radius: 32px;
+            padding: 28px;
+            box-shadow: var(--shadow);
+            backdrop-filter: blur(18px);
+            -webkit-backdrop-filter: blur(18px);
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            right: -70px;
+            top: -80px;
+            width: 190px;
+            height: 190px;
+            background: rgba(14,165,233,.22);
+            filter: blur(42px);
+            border-radius: 50%;
+        }
+
+        .card::after {
+            content: '';
+            position: absolute;
+            left: -90px;
+            bottom: -90px;
+            width: 220px;
+            height: 220px;
+            background: rgba(124,58,237,.16);
+            filter: blur(44px);
+            border-radius: 50%;
+        }
+
+        .card-inner {
+            position: relative;
+            z-index: 1;
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            padding: 7px 11px;
+            border-radius: 999px;
+            background: rgba(14,165,233,.10);
+            border: 1px solid rgba(14,165,233,.22);
+            color: #7dd3fc;
+            font-size: 11px;
+            font-weight: 900;
+            margin-bottom: 16px;
+        }
+
+        .badge-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 999px;
+            background: var(--emerald);
+            box-shadow: 0 0 0 5px rgba(34,197,94,.10);
         }
 
         .card-header-text {
-            margin-bottom: 26px;
+            margin-bottom: 24px;
         }
 
         .card-header-text h2 {
-            font-size: 18px;
-            font-weight: 600;
-            color: var(--text-light);
+            font-size: 25px;
+            line-height: 1.2;
+            font-weight: 900;
+            letter-spacing: -.04em;
+            color: #fff;
         }
 
         .card-header-text p {
             font-size: 13px;
-            color: var(--text-dim);
-            margin-top: 4px;
+            color: var(--muted);
+            margin-top: 8px;
+            line-height: 1.55;
         }
 
-        /* --- Alert --- */
         .alert {
-            background-color: rgba(220, 38, 38, 0.12);
-            border: 1px solid rgba(220, 38, 38, 0.3);
-            border-radius: 10px;
-            padding: 10px 14px;
-            font-size: 13px;
-            color: #f87171;
-            margin-bottom: 20px;
             display: flex;
-            align-items: center;
-            gap: 8px;
+            align-items: flex-start;
+            gap: 10px;
+            background: rgba(244,63,94,.10);
+            border: 1px solid rgba(244,63,94,.22);
+            color: #fda4af;
+            border-radius: 18px;
+            padding: 13px 14px;
+            font-size: 13px;
+            font-weight: 700;
+            line-height: 1.5;
+            margin-bottom: 20px;
         }
 
         .alert i {
-            font-size: 14px;
+            margin-top: 2px;
             flex-shrink: 0;
         }
 
-        /* --- Form Fields --- */
         .form-group {
             margin-bottom: 18px;
         }
 
         .form-group label {
             display: block;
-            font-size: 13px;
-            font-weight: 500;
-            color: var(--text-dim);
-            margin-bottom: 8px;
+            font-size: 11px;
+            font-weight: 900;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: .12em;
+            margin-bottom: 9px;
         }
 
         .input-wrap {
             position: relative;
         }
 
-        .input-wrap i {
+        .input-icon {
             position: absolute;
-            left: 14px;
+            left: 15px;
             top: 50%;
             transform: translateY(-50%);
             font-size: 14px;
-            color: var(--text-dim);
+            color: var(--muted-2);
             pointer-events: none;
         }
 
         .input-wrap input {
             width: 100%;
-            background-color: var(--input-bg);
-            border: 1px solid var(--border-subtle);
-            border-radius: 10px;
-            padding: 11px 14px 11px 40px;
+            background: rgba(2,6,23,.56);
+            border: 1px solid rgba(255,255,255,.10);
+            color: #fff;
+            border-radius: 18px;
+            padding: 14px 45px 14px 43px;
             font-size: 14px;
-            font-family: 'Poppins', sans-serif;
-            color: var(--text-light);
             outline: none;
-            transition: border-color 0.2s, box-shadow 0.2s;
+            transition: .2s ease;
         }
 
         .input-wrap input::placeholder {
-            color: #3d4860;
+            color: #475569;
         }
 
         .input-wrap input:focus {
-            border-color: rgba(0, 102, 255, 0.5);
-            box-shadow: 0 0 0 3px rgba(0, 102, 255, 0.1);
+            border-color: rgba(14,165,233,.55);
+            box-shadow: 0 0 0 4px rgba(14,165,233,.10);
         }
 
-        /* Toggle password visibility */
         .toggle-pw {
             position: absolute;
-            right: 14px;
+            right: 15px;
             top: 50%;
             transform: translateY(-50%);
             font-size: 14px;
-            color: var(--text-dim);
+            color: var(--muted-2);
             cursor: pointer;
-            pointer-events: all;
-            transition: color 0.2s;
+            transition: .2s ease;
         }
 
         .toggle-pw:hover {
-            color: var(--text-light);
+            color: #fff;
         }
 
-        /* --- Submit Button --- */
         .btn-submit {
             width: 100%;
-            padding: 13px;
-            border: none;
-            border-radius: 10px;
-            background: var(--cart-grad);
-            color: white;
-            font-family: 'Poppins', sans-serif;
+            border: 0;
+            border-radius: 21px;
+            background: var(--gradient);
+            color: #fff;
+            padding: 15px 16px;
             font-size: 14px;
-            font-weight: 600;
-            cursor: pointer;
-            margin-top: 8px;
-            letter-spacing: 0.3px;
-            transition: opacity 0.2s, transform 0.15s;
+            font-weight: 900;
             display: flex;
-            align-items: center;
             justify-content: center;
-            gap: 8px;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            box-shadow: 0 20px 50px rgba(14,165,233,.25), 0 10px 34px rgba(0,0,0,.50);
+            transition: transform .15s ease, opacity .15s ease;
+            margin-top: 8px;
         }
 
         .btn-submit:hover {
-            opacity: 0.9;
-            transform: translateY(-1px);
+            opacity: .94;
         }
 
         .btn-submit:active {
-            transform: translateY(0);
-            opacity: 1;
+            transform: scale(.98);
         }
 
-        /* --- Footer kecil --- */
+        .security-note {
+            margin-top: 18px;
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            padding: 13px 14px;
+            border-radius: 18px;
+            background: rgba(255,255,255,.035);
+            border: 1px solid rgba(255,255,255,.08);
+        }
+
+        .security-note i {
+            color: #7dd3fc;
+            margin-top: 2px;
+        }
+
+        .security-note p {
+            font-size: 12px;
+            line-height: 1.55;
+            color: var(--muted);
+        }
+
         .login-footer {
             text-align: center;
             margin-top: 22px;
             font-size: 12px;
-            color: var(--text-dim);
+            color: var(--muted-2);
+            line-height: 1.6;
+        }
+
+        .login-footer strong {
+            color: #cbd5e1;
+        }
+
+        @media (max-width: 420px) {
+            .card {
+                padding: 24px 20px;
+                border-radius: 28px;
+            }
+
+            .brand-info h1 {
+                font-size: 20px;
+            }
+
+            .card-header-text h2 {
+                font-size: 23px;
+            }
         }
     </style>
 </head>
+
 <body>
 
 <div class="login-wrapper">
 
-    <!-- Branding -->
     <div class="brand">
         <div class="brand-logo">
-            <img src="<?= base_url('assets/img/logo_k.png') ?>" alt="Logo Arzana">
+            <img src="<?= esc($logoSrc) ?>"
+                 alt="Logo <?= esc($storeName) ?>"
+                 onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+
+            <div class="logo-fallback">
+                <i class="fa-solid fa-store"></i>
+            </div>
         </div>
+
         <div class="brand-info">
-            <h1>Arzana</h1>
-            <p>Sistem Pemesanan</p>
+            <h1><?= esc($storeName) ?></h1>
+            <p><?= esc($storeDescription ?: 'Sistem Pemesanan QR Code') ?></p>
         </div>
     </div>
 
-    <!-- Card Login -->
     <div class="card">
-        <div class="card-header-text">
-            <h2>Masuk ke Akun</h2>
-            <p>Silakan masukkan kredensial Anda</p>
-        </div>
-
-        <?php if(session()->getFlashdata('msg')): ?>
-        <div class="alert">
-            <i class="fa-solid fa-circle-exclamation"></i>
-            <?= session()->getFlashdata('msg') ?>
-        </div>
-        <?php endif; ?>
-
-        <form action="<?= base_url('/auth/login') ?>" method="POST">
-            <?= csrf_field() ?>
-            <div class="form-group">
-                <label for="username">Username</label>
-                <div class="input-wrap">
-                    <i class="fa-solid fa-user"></i>
-                    <input
-                        type="text"
-                        id="username"
-                        name="username"
-                        placeholder="Masukkan username"
-                        required
-                        autofocus
-                    >
-                </div>
+        <div class="card-inner">
+            <div class="badge">
+                <span class="badge-dot"></span>
+                Role Access
             </div>
 
-            <div class="form-group">
-                <label for="password">Password</label>
-                <div class="input-wrap">
-                    <i class="fa-solid fa-lock"></i>
-                    <input
-                        type="password"
-                        id="password"
-                        name="password"
-                        placeholder="Masukkan password"
-                        required
-                    >
-                    <i class="fa-solid fa-eye toggle-pw" id="togglePw"></i>
-                </div>
+            <div class="card-header-text">
+                <h2>Masuk ke Akun</h2>
+                <p>Silakan login menggunakan username dan password yang sudah terdaftar.</p>
             </div>
 
-            <button type="submit" class="btn-submit">
-                <i class="fa-solid fa-arrow-right-to-bracket"></i>
-                Masuk
-            </button>
-        </form>
+            <?php if (session()->getFlashdata('msg')): ?>
+                <div class="alert">
+                    <i class="fa-solid fa-circle-exclamation"></i>
+                    <span><?= esc(session()->getFlashdata('msg')) ?></span>
+                </div>
+            <?php endif; ?>
+
+            <form action="<?= base_url('auth/login') ?>" method="POST">
+                <?= csrf_field() ?>
+
+                <div class="form-group">
+                    <label for="username">Username</label>
+                    <div class="input-wrap">
+                        <i class="fa-solid fa-user input-icon"></i>
+                        <input
+                            type="text"
+                            id="username"
+                            name="username"
+                            value="<?= esc(old('username')) ?>"
+                            placeholder="Masukkan username"
+                            required
+                            autofocus
+                            autocomplete="username"
+                        >
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <div class="input-wrap">
+                        <i class="fa-solid fa-lock input-icon"></i>
+                        <input
+                            type="password"
+                            id="password"
+                            name="password"
+                            placeholder="Masukkan password"
+                            required
+                            autocomplete="current-password"
+                        >
+                        <i class="fa-solid fa-eye toggle-pw" id="togglePw"></i>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn-submit">
+                    <i class="fa-solid fa-arrow-right-to-bracket"></i>
+                    Masuk Dashboard
+                </button>
+            </form>
+
+            <div class="security-note">
+                <i class="fa-solid fa-shield-halved"></i>
+                <p>
+                    Halaman ini hanya untuk admin dan kasir yang memiliki akses resmi.
+                </p>
+            </div>
+        </div>
     </div>
 
-    <p class="login-footer">&copy; <?= date('Y') ?> Arzana. All rights reserved.</p>
+    <p class="login-footer">
+        &copy; <?= date('Y') ?> <strong><?= esc($storeName) ?></strong>. All rights reserved.<br>
+        <?= esc($footerText) ?>
+    </p>
+
 </div>
 
 <script>
     const togglePw = document.getElementById('togglePw');
     const pwInput = document.getElementById('password');
 
-    togglePw.addEventListener('click', () => {
-        const isHidden = pwInput.type === 'password';
-        pwInput.type = isHidden ? 'text' : 'password';
-        togglePw.classList.toggle('fa-eye', !isHidden);
-        togglePw.classList.toggle('fa-eye-slash', isHidden);
-    });
+    if (togglePw && pwInput) {
+        togglePw.addEventListener('click', () => {
+            const isHidden = pwInput.type === 'password';
+
+            pwInput.type = isHidden ? 'text' : 'password';
+
+            togglePw.classList.toggle('fa-eye', !isHidden);
+            togglePw.classList.toggle('fa-eye-slash', isHidden);
+        });
+    }
 </script>
 
 </body>

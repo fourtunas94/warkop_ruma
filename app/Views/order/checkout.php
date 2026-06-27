@@ -763,9 +763,19 @@ $kodeMeja  = $meja['kode_unik'] ?? '';
                 <div id="order-list"></div>
 
                 <div class="order-summary">
+                    <div class="summary-row">
+                        <span>Subtotal</span>
+                        <span id="subtotal-val">Rp 0</span>
+                    </div>
+
                     <div id="row-promo" class="summary-row promo">
                         <span>Potongan Promo</span>
                         <span id="promo-val">-Rp 0</span>
+                    </div>
+
+                    <div class="summary-row">
+                        <span>PPN 10%</span>
+                        <span id="ppn-val">Rp 0</span>
                     </div>
 
                     <div class="summary-total">
@@ -863,6 +873,7 @@ $kodeMeja  = $meja['kode_unik'] ?? '';
     const KODE_MEJA  = <?= json_encode($kodeMeja) ?>;
     const SUBMIT_URL = <?= json_encode(base_url('order/submit/' . $kodeMeja)) ?>;
     const MENU_URL   = <?= json_encode(base_url('order/' . $kodeMeja)) ?>;
+    const PROMO_URL  = <?= json_encode(base_url('order/cek-promo/' . $kodeMeja)) ?>;
 
     const cart = JSON.parse(localStorage.getItem('arzana_cart_' + KODE_MEJA) || '[]');
 
@@ -885,6 +896,34 @@ $kodeMeja  = $meja['kode_unik'] ?? '';
         });
     }
 
+    function getSubtotal() {
+        return cart.reduce((sum, item) => {
+            return sum + (Number(item.harga || 0) * Number(item.qty || 0));
+        }, 0);
+    }
+
+    function hitungPPN(totalSetelahDiskon) {
+        return Math.floor(Number(totalSetelahDiskon || 0) * 0.10);
+    }
+
+    function resetPromo(message = '') {
+        potongan  = 0;
+        kodeValid = '';
+
+        const info     = document.getElementById('promo-info');
+        const rowPromo = document.getElementById('row-promo');
+
+        rowPromo.classList.remove('show');
+
+        if (message !== '') {
+            info.style.display = 'block';
+            info.textContent = message;
+            info.style.color = 'var(--rose)';
+        }
+
+        renderOrder();
+    }
+
     function showError(msg) {
         const el = document.getElementById('error-msg');
 
@@ -897,7 +936,7 @@ $kodeMeja  = $meja['kode_unik'] ?? '';
         }, 3500);
     }
 
-    function cekPromo() {
+    async function cekPromo() {
         const input    = document.getElementById('kode_promo').value.trim().toUpperCase();
         const info     = document.getElementById('promo-info');
         const rowPromo = document.getElementById('row-promo');
@@ -905,38 +944,58 @@ $kodeMeja  = $meja['kode_unik'] ?? '';
         info.style.display = 'block';
 
         if (input === '') {
-            potongan  = 0;
-            kodeValid = '';
-
-            info.textContent = 'Masukkan kode promo terlebih dahulu.';
-            info.style.color = 'var(--rose)';
-            rowPromo.classList.remove('show');
-
-            renderOrder();
+            resetPromo('Masukkan kode promo terlebih dahulu.');
             return;
         }
 
-        if (input === 'DISC10') {
-            const subtotal = cart.reduce((s, i) => s + (Number(i.harga || 0) * Number(i.qty || 0)), 0);
+        const subtotal = getSubtotal();
 
-            potongan  = Math.floor(subtotal * 0.1);
+        if (subtotal <= 0) {
+            resetPromo('Keranjang masih kosong.');
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('kode_promo', input);
+        formData.append('subtotal', subtotal);
+
+        try {
+            const res = await fetch(PROMO_URL, {
+                method: 'POST',
+                body: formData
+            });
+
+            const text = await res.text();
+
+            let data;
+
+            try {
+                data = JSON.parse(text);
+            } catch (e) {
+                resetPromo('Response promo tidak valid dari server.');
+                console.error('Raw promo response:', text);
+                return;
+            }
+
+            if (!data.success) {
+                resetPromo(data.message || 'Kode promo tidak valid.');
+                return;
+            }
+
+            potongan  = Number(data.potongan || 0);
             kodeValid = input;
 
-            info.innerHTML = '<i class="fa-solid fa-circle-check"></i> Kode berhasil digunakan.';
+            info.innerHTML = '<i class="fa-solid fa-circle-check"></i> ' + (data.message || 'Kode promo berhasil digunakan.');
             info.style.color = 'var(--emerald)';
             rowPromo.classList.add('show');
 
             document.getElementById('promo-val').textContent = '-Rp ' + formatRupiah(potongan);
-        } else {
-            potongan  = 0;
-            kodeValid = '';
 
-            info.innerHTML = '<i class="fa-solid fa-circle-xmark"></i> Kode tidak valid.';
-            info.style.color = 'var(--rose)';
-            rowPromo.classList.remove('show');
+            renderOrder();
+        } catch (err) {
+            resetPromo('Gagal mengecek promo.');
+            console.error(err);
         }
-
-        renderOrder();
     }
 
     function renderOrder() {
@@ -969,9 +1028,18 @@ $kodeMeja  = $meja['kode_unik'] ?? '';
             `;
         }).join('');
 
-        const finalTotal = Math.max(0, subtotal - potongan);
+        if (potongan > subtotal) {
+            potongan = subtotal;
+        }
 
-        document.getElementById('order-total').textContent = 'Rp ' + formatRupiah(finalTotal);
+        const totalSetelahDiskon = Math.max(0, subtotal - potongan);
+        const ppn                = hitungPPN(totalSetelahDiskon);
+        const finalTotal         = totalSetelahDiskon + ppn;
+
+        document.getElementById('subtotal-val').textContent = 'Rp ' + formatRupiah(subtotal);
+        document.getElementById('promo-val').textContent    = '-Rp ' + formatRupiah(potongan);
+        document.getElementById('ppn-val').textContent      = 'Rp ' + formatRupiah(ppn);
+        document.getElementById('order-total').textContent  = 'Rp ' + formatRupiah(finalTotal);
     }
 
     async function submitOrder() {
@@ -998,8 +1066,12 @@ $kodeMeja  = $meja['kode_unik'] ?? '';
         formData.append('catatan', document.getElementById('catatan').value);
         formData.append('payment_method', paymentMethod);
         formData.append('items', JSON.stringify(cart));
+
+        /*
+         * Yang dikirim cuma kode promo.
+         * Potongan dan PPN dihitung ulang di server supaya aman.
+         */
         formData.append('kode_promo', kodeValid);
-        formData.append('potongan', potongan);
 
         try {
             const res  = await fetch(SUBMIT_URL, {
@@ -1050,6 +1122,19 @@ $kodeMeja  = $meja['kode_unik'] ?? '';
             btn.disabled = false;
             btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Kirim Pesanan Sekarang';
         }
+    }
+
+    const promoInput = document.getElementById('kode_promo');
+
+    if (promoInput) {
+        promoInput.addEventListener('input', function () {
+            const currentValue = this.value.trim().toUpperCase();
+
+            if (kodeValid !== '' && currentValue !== kodeValid) {
+                resetPromo('');
+                document.getElementById('promo-info').style.display = 'none';
+            }
+        });
     }
 
     renderOrder();
