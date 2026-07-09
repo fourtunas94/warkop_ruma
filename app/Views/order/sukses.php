@@ -38,8 +38,9 @@ $metodeIcon = match ($metode) {
     default    => 'fa-credit-card',
 };
 
-$nomorMeja = $meja['nomor_meja'] ?? '-';
-$kodeMeja  = $meja['kode_unik'] ?? '';
+$nomorAntrian = $pesanan['nomor_antrian'] ?? '-';
+$nomorMeja    = $meja['nomor_meja'] ?? '-';
+$kodeMeja     = $meja['kode_unik'] ?? '';
 
 $whatsappUrl = '';
 if (! empty($storeWhatsapp)) {
@@ -288,6 +289,63 @@ if (! empty($storeWhatsapp)) {
             color: var(--muted);
             line-height: 1.6;
         }
+
+        .queue-box {
+    position: relative;
+    overflow: hidden;
+    border-radius: 24px;
+    margin-bottom: 16px;
+    padding: 18px;
+    text-align: center;
+    background: linear-gradient(135deg, rgba(14,165,233,.14), rgba(124,58,237,.14));
+    border: 1px solid rgba(125,211,252,.20);
+}
+
+.queue-box::before {
+    content: '';
+    position: absolute;
+    width: 120px;
+    height: 120px;
+    top: -70px;
+    right: -50px;
+    border-radius: 50%;
+    background: rgba(14,165,233,.20);
+    filter: blur(30px);
+}
+
+.queue-label {
+    position: relative;
+    z-index: 1;
+    display: block;
+    color: var(--muted);
+    font-size: 10px;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: .16em;
+    margin-bottom: 8px;
+}
+
+.queue-number {
+    position: relative;
+    z-index: 1;
+    display: block;
+    color: #fff;
+    font-size: 46px;
+    line-height: 1;
+    font-weight: 900;
+    letter-spacing: -.06em;
+    text-shadow: 0 0 25px rgba(14,165,233,.30);
+}
+
+.queue-note {
+    position: relative;
+    z-index: 1;
+    display: block;
+    margin-top: 9px;
+    color: var(--muted);
+    font-size: 11px;
+    line-height: 1.5;
+}
 
         .info-grid {
             display: grid;
@@ -562,6 +620,14 @@ if (! empty($storeWhatsapp)) {
                     <?php endif; ?>
                 </div>
             <?php endif; ?>
+
+            <div class="queue-box">
+                <span class="queue-label">Nomor Antrian</span>
+                <strong class="queue-number"><?= esc($nomorAntrian) ?></strong>
+                <span class="queue-note">
+                    Pantau nomor ini pada layar monitor untuk mengetahui status pesanan.
+                </span>
+            </div>
 
             <div class="info-grid">
                 <div class="info-box">

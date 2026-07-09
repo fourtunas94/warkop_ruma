@@ -42,17 +42,17 @@ class Auth extends BaseController
                 
             } else {
                 $session->setFlashdata('msg', 'Password salah.');
-                return redirect()->to('/login');
+                return redirect()->to('/auth');
             }
         } else {
             $session->setFlashdata('msg', 'Username tidak ditemukan.');
-            return redirect()->to('/login');
+            return redirect()->to('/auth');
         }
     }
 
     public function logout()
     {
         session()->destroy();
-        return redirect()->to('/login');
+        return redirect()->to('/auth');
     }
 }

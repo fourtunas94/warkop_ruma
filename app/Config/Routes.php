@@ -4,21 +4,49 @@ use CodeIgniter\Router\RouteCollection;
 
 /** @var RouteCollection $routes */
 
-$routes->get('/', 'Auth::index');
-$routes->get('/login', 'Auth::index');
-$routes->post('/auth/login', 'Auth::login');
-$routes->get('/logout', 'Auth::logout');
+/*
+|--------------------------------------------------------------------------
+| Public Monitor
+|--------------------------------------------------------------------------
+| Halaman utama langsung menampilkan public monitor.
+*/
+$routes->get('/', 'PublicMonitor::index');
+$routes->get('monitor', 'PublicMonitor::index');
+$routes->get('monitor/data', 'PublicMonitor::data');
 
+
+/*
+|--------------------------------------------------------------------------
+| Authentication
+|--------------------------------------------------------------------------
+| Login sekarang menggunakan /auth.
+*/
+$routes->get('auth', 'Auth::index');
+$routes->post('auth/login', 'Auth::login');
+$routes->get('logout', 'Auth::logout');
+
+
+/*
+|--------------------------------------------------------------------------
+| Customer Order
+|--------------------------------------------------------------------------
+*/
 $routes->get('order/(:segment)',             'Order::menu/$1');
 $routes->get('order/checkout/(:segment)',    'Order::checkout/$1');
 $routes->post('order/cek-promo/(:segment)',  'Order::cekPromo/$1');
 $routes->post('order/submit/(:segment)',     'Order::submit/$1');
 $routes->get('order/sukses/(:segment)',      'Order::sukses/$1');
 $routes->post('order/midtrans-notification', 'Order::midtransNotification');
-$routes->get('monitor', 'PublicMonitor::index');
-$routes->get('monitor/data', 'PublicMonitor::data');
 
+
+/*
+|--------------------------------------------------------------------------
+| Admin
+|--------------------------------------------------------------------------
+*/
 $routes->group('admin', ['filter' => 'role:admin'], function ($routes) {
+
+    // Dashboard
     $routes->get('dashboard', 'Admin\Dashboard::index');
 
     // Kategori
@@ -55,22 +83,39 @@ $routes->group('admin', ['filter' => 'role:admin'], function ($routes) {
     $routes->get('riwayat', 'Admin\Riwayat::index');
 
     // Promo
-    $routes->get('promo',                 'Admin\Promo::index');
-    $routes->post('promo/store',          'Admin\Promo::store');
-    $routes->post('promo/update/(:num)',  'Admin\Promo::update/$1');
-    $routes->post('promo/toggle/(:num)',  'Admin\Promo::toggle/$1');
-    $routes->post('promo/delete/(:num)',  'Admin\Promo::delete/$1');
+    $routes->get('promo',                'Admin\Promo::index');
+    $routes->post('promo/store',         'Admin\Promo::store');
+    $routes->post('promo/update/(:num)', 'Admin\Promo::update/$1');
+    $routes->post('promo/toggle/(:num)', 'Admin\Promo::toggle/$1');
+    $routes->post('promo/delete/(:num)', 'Admin\Promo::delete/$1');
 
     // Pengaturan
     $routes->get('pengaturan',         'Admin\Pengaturan::index');
     $routes->post('pengaturan/update', 'Admin\Pengaturan::update');
 });
 
+
+/*
+|--------------------------------------------------------------------------
+| Kasir
+|--------------------------------------------------------------------------
+*/
 $routes->group('kasir', ['filter' => 'role:kasir'], function ($routes) {
-    $routes->get('dashboard',                    'Kasir\Dashboard::index');
-    $routes->post('selesai/(:num)',              'Kasir\Dashboard::selesai/$1');
-    $routes->get('cek_baru/(:num)',              'Kasir\Dashboard::cek_baru/$1');
-    $routes->get('cek_pembayaran_berhasil',      'Kasir\Dashboard::cek_pembayaran_berhasil');
-    $routes->get('riwayat',                      'Kasir\Riwayat::index');
-    $routes->post('siap/(:num)', 'Kasir\Dashboard::siap/$1');
+
+    // Dashboard
+    $routes->get('dashboard', 'Kasir\Dashboard::index');
+
+    // Status pesanan
+    $routes->post('selesai/(:num)', 'Kasir\Dashboard::selesai/$1');
+    $routes->post('siap/(:num)',    'Kasir\Dashboard::siap/$1');
+
+    // Live check
+    $routes->get('cek_baru/(:num)',         'Kasir\Dashboard::cek_baru/$1');
+    $routes->get(
+        'cek_pembayaran_berhasil',
+        'Kasir\Dashboard::cek_pembayaran_berhasil'
+    );
+
+    // Riwayat
+    $routes->get('riwayat', 'Kasir\Riwayat::index');
 });
