@@ -1,126 +1,43 @@
-#-------------------------
-# Operating Specific Junk Files
-#-------------------------
-
-# OS X
+# OS & Editor Junk
 .DS_Store
-.AppleDouble
-.LSOverride
-
-# OS X Thumbnails
-._*
-
-# Windows image file caches
 Thumbs.db
-ehthumbs.db
 Desktop.ini
-
-# Recycle Bin used on file shares
-$RECYCLE.BIN/
-
-# Windows Installer files
-*.cab
-*.msi
-*.msm
-*.msp
-
-# Windows shortcuts
-*.lnk
-
-# Linux
+*.swp
 *~
-
-# KDE directory preferences
-.directory
-
-# Linux trash folder which might appear on any partition or disk
-.Trash-*
-
-#-------------------------
-# Environment Files
-#-------------------------
-# These should never be under version control,
-# as it poses a security risk.
-.env
-.vagrant
-Vagrantfile
-
-#-------------------------
-# Temporary Files
-#-------------------------
-/writable/cache/*
-!/writable/cache/index.html
-
-/writable/logs/*
-!/writable/logs/index.html
-
-/writable/session/*
-!/writable/session/index.html
-
-/writable/uploads/*
-!/writable/uploads/index.html
-
-/writable/debugbar/*
-!/writable/debugbar/index.html
-
-php_errors.log
-
-#-------------------------
-# User Guide Temp Files
-#-------------------------
-/user_guide_src/build/*
-/user_guide_src/cilexer/build/*
-/user_guide_src/cilexer/dist/*
-/user_guide_src/cilexer/pycilexer.egg-info/*
-
-#-------------------------
-# Test Files
-#-------------------------
-/tests/coverage*
-
-# Don't save phpunit under version control.
-/phpunit
-
-#-------------------------
-# Composer
-#-------------------------
-vendor/
-
-#-------------------------
-# IDE / Development Files
-#-------------------------
-
-# Modules Testing
-_modules/*
-
-# phpenv local config
-.php-version
-
-# Jetbrains editors (PHPStorm, etc)
 .idea/
+.vscode/
 *.iml
 
-# NetBeans
-/nbproject/
-/build/
-/nbbuild/
-/dist/
-/nbdist/
-/nbactions.xml
-/nb-configuration.xml
-/.nb-gradle/
+# Environment & Secrets (NEVER commit)
+.env
+.env.*
+!.env.example
+backend/.env
+backend/.env.*
+!backend/.env.example
 
-# Sublime Text
-*.tmlanguage.cache
-*.tmPreferences.cache
-*.stTheme.cache
-*.sublime-workspace
-*.sublime-project
-.phpintel
-/api/
+# Laravel Backend
+backend/vendor/
+backend/node_modules/
+backend/public/build/
+backend/public/hot
+backend/public/storage
+backend/storage/*.key
+backend/storage/logs/*.log
+backend/storage/framework/cache/*
+backend/storage/framework/sessions/*
+backend/storage/framework/views/*
+backend/.phpunit.result.cache
 
-# Visual Studio Code
-.vscode/
-
-/results/
-/phpunit.xml
+# Flutter Mobile / Web
+mobile/build/
+mobile/.dart_tool/
+mobile/.flutter-plugins-dependencies
+mobile/.pub-cache/
+mobile/.pub/
+mobile/coverage/
+mobile/android/app/debug
+mobile/android/app/profile
+mobile/android/app/release
+mobile/ios/Flutter/.last_build_id
+*.log
