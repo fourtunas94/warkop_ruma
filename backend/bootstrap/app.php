@@ -19,6 +19,9 @@ return Application::configure(basePath: dirname(__DIR__))
             'order/midtrans-notification',
             'order/submit/*',
             'order/cek-promo/*',
+            'login',
+            'api/login',
+            'api/*',
         ]);
         $middleware->statefulApi();
     })

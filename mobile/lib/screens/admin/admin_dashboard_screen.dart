@@ -43,6 +43,20 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     _fetchDashboardData();
   }
 
+  double _parseDouble(dynamic value, {double fallback = 0.0}) {
+    if (value == null) return fallback;
+    if (value is num) return value.toDouble();
+    final cleaned = value.toString().replaceAll(',', '.').trim();
+    return double.tryParse(cleaned) ?? fallback;
+  }
+
+  int _parseInt(dynamic value, {int fallback = 0}) {
+    if (value == null) return fallback;
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    return int.tryParse(value.toString().trim()) ?? fallback;
+  }
+
   Future<void> _loadUserName() async {
     final prefs = await SharedPreferences.getInstance();
     if (mounted) {
@@ -62,14 +76,13 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             [];
         setState(() {
           _recentOrders = list;
-          _totalPesanan = res['total_pesanan'] ?? list.length;
+          _totalPesanan = _parseInt(res['total_pesanan'], fallback: list.length);
           _totalPendapatan = res['pendapatan'] ?? 0;
-          _totalMenu = res['total_menu'] ?? 0;
-          _totalMeja = res['total_meja'] ?? 0;
+          _totalMenu = _parseInt(res['total_menu'], fallback: 0);
+          _totalMeja = _parseInt(res['total_meja'], fallback: 0);
           _loading = false;
         });
       } else if (mounted) {
-        // Fallback: fetch menus and mejas directly if pos-dashboard did not return them
         _fetchFallbackStats();
       }
     } catch (_) {
@@ -97,7 +110,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             _totalMeja = (mejasRes['mejas'] as List<dynamic>?)?.length ?? 0;
           }
           if (riwayatRes['success'] == true) {
-            _totalPesanan = riwayatRes['total_pesanan'] ?? 0;
+            _totalPesanan = _parseInt(riwayatRes['total_pesanan'], fallback: 0);
             _totalPendapatan = riwayatRes['total_pendapatan'] ?? 0;
             _recentOrders = (riwayatRes['riwayat'] as List<dynamic>?) ?? [];
           }
@@ -120,8 +133,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   }
 
   String _formatCurrency(dynamic value) {
-    final num = (value is int) ? value.toDouble() : (value as double? ?? 0.0);
-    return NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0).format(num);
+    final amount = _parseDouble(value, fallback: 0.0);
+    return NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0).format(amount);
   }
 
   static final ThemeData _adminTheme = ThemeData(
@@ -148,14 +161,11 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         drawer: isDesktop ? null : _buildDrawer(),
         body: Row(
           children: [
-            // Desktop Fixed Left Sidebar (matches Arzana)
             if (isDesktop)
               SizedBox(
                 width: 250,
                 child: _buildSidebarContent(),
               ),
-
-            // Main Content
             Expanded(
               child: Column(
                 children: [
@@ -176,7 +186,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   Widget _buildTopBar(bool isDesktop) {
     return Container(
       height: 60,
-      padding: const EdgeInsets.symmetric(horizontal: 24),
+      padding: const EdgeInsets.symmetric(horizontal: 20),
       decoration: const BoxDecoration(
         color: Colors.white,
         border: Border(
@@ -186,35 +196,42 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Row(
-            children: [
-              if (!isDesktop) ...[
-                IconButton(
-                  icon: const Icon(Icons.menu, color: Color(0xFF1E293B)),
-                  onPressed: () => _scaffoldKey.currentState?.openDrawer(),
+          Expanded(
+            child: Row(
+              children: [
+                if (!isDesktop) ...[
+                  IconButton(
+                    icon: const Icon(Icons.menu, color: Color(0xFF1E293B)),
+                    onPressed: () => _scaffoldKey.currentState?.openDrawer(),
+                  ),
+                  const SizedBox(width: 4),
+                ],
+                Container(
+                  width: 32,
+                  height: 32,
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFF0F9FF),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.person, color: Color(0xFF008CFF), size: 16),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'Selamat datang, $_userName',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Color(0xFF1E293B),
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14,
+                    ),
+                  ),
+                ),
               ],
-              Container(
-                width: 32,
-                height: 32,
-                decoration: const BoxDecoration(
-                  color: Color(0xFFF0F9FF),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(Icons.person, color: Color(0xFF008CFF), size: 16),
-              ),
-              const SizedBox(width: 10),
-              Text(
-                'Selamat datang, $_userName',
-                style: const TextStyle(
-                  color: Color(0xFF1E293B),
-                  fontWeight: FontWeight.w600,
-                  fontSize: 14,
-                ),
-              ),
-            ],
+            ),
           ),
+          const SizedBox(width: 10),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
             decoration: BoxDecoration(
@@ -235,7 +252,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     );
   }
 
-  // ─── SIDEBAR (ARZANA DESIGN) ────────────────────────────────────────────────
+  // ─── SIDEBAR ────────────────────────────────────────────────────────────────
   Widget _buildDrawer() {
     return Drawer(
       backgroundColor: const Color(0xFF0B132B),
@@ -249,7 +266,6 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Logo & Title
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
             child: Row(
@@ -290,18 +306,15 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           ),
           const Divider(color: Color(0xFF1E293B), height: 1),
 
-          // Menu Items
           Expanded(
             child: ListView(
               padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
               children: [
-                // UTAMA
                 _buildSectionHeader('UTAMA'),
                 _buildNavItem(0, Icons.speed_outlined, 'Dashboard'),
 
                 const SizedBox(height: 16),
 
-                // MANAJEMEN
                 _buildSectionHeader('MANAJEMEN'),
                 _buildNavItem(1, Icons.label_outline, 'Kelola Kategori'),
                 _buildNavItem(2, Icons.restaurant_menu_outlined, 'Kelola Menu'),
@@ -311,14 +324,12 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
 
                 const SizedBox(height: 16),
 
-                // TRANSAKSI
                 _buildSectionHeader('TRANSAKSI'),
                 _buildNavItem(6, Icons.history, 'Riwayat Transaksi'),
               ],
             ),
           ),
 
-          // Logout Button
           Padding(
             padding: const EdgeInsets.all(16),
             child: InkWell(
@@ -434,7 +445,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     }
   }
 
-  // ─── ARZANA DASHBOARD (SCREENSHOT 1) ─────────────────────────────────────────
+  // ─── ARZANA DASHBOARD ───────────────────────────────────────────────────────
   Widget _buildRUMADashboard() {
     return RefreshIndicator(
       onRefresh: _fetchDashboardData,
@@ -443,7 +454,6 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Page Header
             const Text(
               'Dashboard Admin',
               style: TextStyle(
@@ -465,62 +475,70 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             // 4 Stat Cards
             LayoutBuilder(
               builder: (ctx, constraints) {
-                final isWide = constraints.maxWidth >= 720;
+                final availableWidth = constraints.maxWidth.isFinite
+                    ? constraints.maxWidth
+                    : MediaQuery.of(ctx).size.width - 48;
+                final isWide = availableWidth >= 720;
                 final cardWidth = isWide
-                    ? (constraints.maxWidth - 48) / 4
-                    : (constraints.maxWidth - 16) / 2;
+                    ? (availableWidth - 48) / 4
+                    : (availableWidth - 16) / 2;
 
-                return Wrap(
-                  spacing: 16,
-                  runSpacing: 16,
-                  children: [
-                    _buildStatCard(
-                      title: 'PESANAN HARI INI',
-                      value: '$_totalPesanan',
-                      subtitle: 'Total transaksi masuk',
-                      icon: Icons.receipt_long,
-                      iconBg: const Color(0xFFF0F9FF),
-                      iconColor: const Color(0xFF008CFF),
-                      width: cardWidth,
-                    ),
-                    _buildStatCard(
-                      title: 'PENDAPATAN (HARI INI)',
-                      value: _formatCurrency(_totalPendapatan),
-                      subtitle: 'Hanya transaksi selesai',
-                      icon: Icons.savings_outlined,
-                      iconBg: const Color(0xFFF0FDF4),
-                      iconColor: const Color(0xFF16A34A),
-                      width: cardWidth,
-                    ),
-                    _buildStatCard(
-                      title: 'MENU AKTIF',
-                      value: '$_totalMenu',
-                      subtitle: 'Item menu tersedia',
-                      icon: Icons.restaurant,
-                      iconBg: const Color(0xFFFFFBEB),
-                      iconColor: const Color(0xFFD97706),
-                      width: cardWidth,
-                    ),
-                    _buildStatCard(
-                      title: 'TOTAL MEJA',
-                      value: '$_totalMeja',
-                      subtitle: 'Meja terdaftar',
-                      icon: Icons.table_restaurant,
-                      iconBg: const Color(0xFFFAF5FF),
-                      iconColor: const Color(0xFF7C3AED),
-                      width: cardWidth,
-                    ),
-                  ],
+                return SizedBox(
+                  width: availableWidth,
+                  child: Wrap(
+                    spacing: 16,
+                    runSpacing: 16,
+                    children: [
+                      _buildStatCard(
+                        title: 'PESANAN HARI INI',
+                        value: '$_totalPesanan',
+                        subtitle: 'Total transaksi masuk',
+                        icon: Icons.receipt_long,
+                        iconBg: const Color(0xFFF0F9FF),
+                        iconColor: const Color(0xFF008CFF),
+                        width: cardWidth,
+                      ),
+                      _buildStatCard(
+                        title: 'PENDAPATAN (HARI INI)',
+                        value: _formatCurrency(_totalPendapatan),
+                        subtitle: 'Hanya transaksi selesai',
+                        icon: Icons.savings_outlined,
+                        iconBg: const Color(0xFFF0FDF4),
+                        iconColor: const Color(0xFF16A34A),
+                        width: cardWidth,
+                      ),
+                      _buildStatCard(
+                        title: 'MENU AKTIF',
+                        value: '$_totalMenu',
+                        subtitle: 'Item menu tersedia',
+                        icon: Icons.restaurant,
+                        iconBg: const Color(0xFFFFFBEB),
+                        iconColor: const Color(0xFFD97706),
+                        width: cardWidth,
+                      ),
+                      _buildStatCard(
+                        title: 'TOTAL MEJA',
+                        value: '$_totalMeja',
+                        subtitle: 'Meja terdaftar',
+                        icon: Icons.table_restaurant,
+                        iconBg: const Color(0xFFFAF5FF),
+                        iconColor: const Color(0xFF7C3AED),
+                        width: cardWidth,
+                      ),
+                    ],
+                  ),
                 );
               },
             ),
 
             const SizedBox(height: 24),
 
-            // Two Columns: Pesanan Terbaru & Akses Cepat
             LayoutBuilder(
               builder: (ctx, constraints) {
-                final isWide = constraints.maxWidth >= 850;
+                final availableWidth = constraints.maxWidth.isFinite
+                    ? constraints.maxWidth
+                    : MediaQuery.of(ctx).size.width - 48;
+                final isWide = availableWidth >= 850;
 
                 if (isWide) {
                   return Row(
@@ -584,15 +602,20 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                title,
-                style: const TextStyle(
-                  color: Color(0xFF94A3B8),
-                  fontSize: 10.5,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 0.5,
+              Expanded(
+                child: Text(
+                  title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Color(0xFF94A3B8),
+                    fontSize: 10.5,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 0.5,
+                  ),
                 ),
               ),
+              const SizedBox(width: 8),
               Container(
                 width: 32,
                 height: 32,
@@ -642,7 +665,6 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       ),
       child: Column(
         children: [
-          // Header
           Padding(
             padding: const EdgeInsets.all(18),
             child: Row(
@@ -678,7 +700,6 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           ),
           const Divider(color: Color(0xFFF1F5F9), height: 1),
 
-          // List
           if (_loading)
             const Padding(
               padding: EdgeInsets.all(40),
@@ -736,12 +757,16 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                                   ),
                                 ),
                                 const SizedBox(width: 6),
-                                Text(
-                                  '#$kode',
-                                  style: const TextStyle(
-                                    color: Color(0xFF94A3B8),
-                                    fontFamily: 'monospace',
-                                    fontSize: 11,
+                                Expanded(
+                                  child: Text(
+                                    '#$kode',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      color: Color(0xFF94A3B8),
+                                      fontFamily: 'monospace',
+                                      fontSize: 11,
+                                    ),
                                   ),
                                 ),
                               ],
@@ -751,11 +776,15 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                               children: [
                                 const Icon(Icons.person_outline, size: 12, color: Color(0xFF94A3B8)),
                                 const SizedBox(width: 4),
-                                Text(
-                                  '$nama  $jam',
-                                  style: const TextStyle(
-                                    color: Color(0xFF94A3B8),
-                                    fontSize: 11,
+                                Expanded(
+                                  child: Text(
+                                    '$nama  $jam',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      color: Color(0xFF94A3B8),
+                                      fontSize: 11,
+                                    ),
                                   ),
                                 ),
                               ],
@@ -763,6 +792,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                           ],
                         ),
                       ),
+                      const SizedBox(width: 10),
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
