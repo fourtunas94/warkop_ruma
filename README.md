@@ -20,9 +20,11 @@ qr-order-system/
 ```bash
 cd backend
 cp .env.example .env
-# Sesuaikan DB_CONNECTION, DB_DATABASE, DB_USERNAME, DB_PASSWORD di .env
+# Siapkan PostgreSQL dan pastikan ekstensi PHP pdo_pgsql aktif.
+# Sesuaikan DB_HOST, DB_DATABASE, DB_USERNAME, dan DB_PASSWORD dengan server PostgreSQL.
 composer install
 php artisan key:generate
+php artisan config:clear
 php artisan migrate --seed
 php artisan serve --host=0.0.0.0 --port=8000
 ```
