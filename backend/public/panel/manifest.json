@@ -1,0 +1,35 @@
+{
+    "name": "Warkop Ruma",
+    "short_name": "Warkop Ruma",
+    "start_url": ".",
+    "display": "standalone",
+    "background_color": "#121317",
+    "theme_color": "#FFC665",
+    "description": "Sistem Pemesanan QR Code Warkop Ruma",
+    "orientation": "portrait-primary",
+    "prefer_related_applications": false,
+    "icons": [
+        {
+            "src": "icons/Icon-192.png",
+            "sizes": "192x192",
+            "type": "image/png"
+        },
+        {
+            "src": "icons/Icon-512.png",
+            "sizes": "512x512",
+            "type": "image/png"
+        },
+        {
+            "src": "icons/Icon-maskable-192.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "maskable"
+        },
+        {
+            "src": "icons/Icon-maskable-512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "maskable"
+        }
+    ]
+}
