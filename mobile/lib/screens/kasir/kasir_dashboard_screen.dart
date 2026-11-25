@@ -47,6 +47,7 @@ class _KasirDashboardScreenState extends State<KasirDashboardScreen> {
 
   Future<void> _loadUserName() async {
     final prefs = await SharedPreferences.getInstance();
+    if (!mounted) return;
     setState(() => _userName = prefs.getString('user_name') ?? 'Kasir');
   }
 
@@ -103,7 +104,7 @@ class _KasirDashboardScreenState extends State<KasirDashboardScreen> {
     final result = await ApiService.telahBayar(pesananId);
     if (mounted) {
       _showSnack(
-        result['success'] == true ? 'Pembayaran dikonfirmasi!' : result['message'] ?? 'Gagal',
+        result['success'] == true ? 'Pembayaran dikonfirmasi!' : (result['message']?.toString() ?? 'Gagal'),
         result['success'] == true,
       );
       if (result['success'] == true) _fetchDashboard(silent: true);
@@ -114,7 +115,7 @@ class _KasirDashboardScreenState extends State<KasirDashboardScreen> {
     final result = await ApiService.siapPesanan(pesananId);
     if (mounted) {
       _showSnack(
-        result['success'] == true ? 'Pesanan selesai!' : result['message'] ?? 'Gagal',
+        result['success'] == true ? 'Pesanan selesai!' : (result['message']?.toString() ?? 'Gagal'),
         result['success'] == true,
       );
       if (result['success'] == true) _fetchDashboard(silent: true);
@@ -141,9 +142,16 @@ class _KasirDashboardScreenState extends State<KasirDashboardScreen> {
     );
   }
 
+  double _toDouble(dynamic value) {
+    if (value == null) return 0.0;
+    if (value is num) return value.toDouble();
+    final cleaned = value.toString().replaceAll(RegExp(r'[^0-9.-]'), '');
+    return double.tryParse(cleaned) ?? 0.0;
+  }
+
   String _formatCurrency(dynamic value) {
-    final num = (value is int) ? value.toDouble() : (value as double? ?? 0.0);
-    return NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0).format(num);
+    final amount = _toDouble(value);
+    return NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0).format(amount);
   }
 
   String _formatTime(String? dateStr) {
@@ -269,11 +277,8 @@ class _KasirDashboardScreenState extends State<KasirDashboardScreen> {
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            // Stats Row
             _buildStatsRow(),
             const SizedBox(height: 20),
-
-            // Pending Orders Header
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -296,8 +301,6 @@ class _KasirDashboardScreenState extends State<KasirDashboardScreen> {
               ],
             ),
             const SizedBox(height: 12),
-
-            // Orders List
             if (_pendingOrders.isEmpty && !_loading)
               const Padding(
                 padding: EdgeInsets.symmetric(vertical: 60),
@@ -361,7 +364,6 @@ class _KasirDashboardScreenState extends State<KasirDashboardScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
             decoration: const BoxDecoration(
@@ -390,7 +392,7 @@ class _KasirDashboardScreenState extends State<KasirDashboardScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        order['nama_pemesan'] ?? 'Unknown',
+                        order['nama_pemesan']?.toString() ?? 'Unknown',
                         style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13),
                       ),
                       Text(
@@ -406,7 +408,7 @@ class _KasirDashboardScreenState extends State<KasirDashboardScreen> {
                     StatusBadge(status: status),
                     const SizedBox(height: 4),
                     Text(
-                      _formatTime(order['created_at']),
+                      _formatTime(order['created_at']?.toString()),
                       style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 11),
                     ),
                   ],
@@ -414,46 +416,41 @@ class _KasirDashboardScreenState extends State<KasirDashboardScreen> {
               ],
             ),
           ),
-
-          // Items
           Padding(
             padding: const EdgeInsets.all(14),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 ...items.take(3).map((item) => Padding(
-                  padding: const EdgeInsets.only(bottom: 4),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.circle, size: 5, color: Color(0xFF94A3B8)),
-                      const SizedBox(width: 6),
-                      Expanded(
-                        child: Text(
-                          '${item['nama_menu'] ?? item['nama'] ?? '-'}',
-                          style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 12),
-                        ),
+                      padding: const EdgeInsets.only(bottom: 4),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.circle, size: 5, color: Color(0xFF94A3B8)),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Text(
+                              '${item['nama_menu'] ?? item['nama'] ?? '-'}',
+                              style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 12),
+                            ),
+                          ),
+                          Text(
+                            'x${item['jumlah'] ?? item['qty'] ?? 1}',
+                            style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
+                          ),
+                        ],
                       ),
-                      Text(
-                        'x${item['jumlah'] ?? item['qty'] ?? 1}',
-                        style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
-                      ),
-                    ],
-                  ),
-                )),
+                    )),
                 if (items.length > 3)
                   Text(
                     '+${items.length - 3} item lainnya',
                     style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 11),
                   ),
-
                 const SizedBox(height: 10),
                 const Divider(color: Color(0x1AFFFFFF), height: 1),
                 const SizedBox(height: 10),
-
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    // Metode Bayar
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                       decoration: BoxDecoration(
@@ -486,8 +483,6 @@ class _KasirDashboardScreenState extends State<KasirDashboardScreen> {
                     ),
                   ],
                 ),
-
-                // Action Buttons
                 if (isTunai && status.toLowerCase() == 'pending') ...[
                   const SizedBox(height: 10),
                   SizedBox(

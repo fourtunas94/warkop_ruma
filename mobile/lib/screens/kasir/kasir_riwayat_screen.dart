@@ -30,6 +30,21 @@ class _KasirRiwayatScreenState extends State<KasirRiwayatScreen> {
     _fetchRiwayat();
   }
 
+  double _toDouble(dynamic value) {
+    if (value == null) return 0.0;
+    if (value is num) return value.toDouble();
+    final cleaned = value.toString().replaceAll(RegExp(r'[^0-9.-]'), '');
+    return double.tryParse(cleaned) ?? 0.0;
+  }
+
+  int _toInt(dynamic value) {
+    if (value == null) return 0;
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    final cleaned = value.toString().replaceAll(RegExp(r'[^0-9-]'), '');
+    return int.tryParse(cleaned) ?? _toDouble(value).round();
+  }
+
   Future<void> _fetchRiwayat() async {
     setState(() => _loading = true);
 
@@ -48,12 +63,19 @@ class _KasirRiwayatScreenState extends State<KasirRiwayatScreen> {
       setState(() {
         _loading = false;
         if (res['success'] == true) {
-          _riwayat = res['riwayat'] ?? res['data']?['transactions'] ?? [];
-          _topMenus = res['top_menus'] ?? [];
-          _summary = Map<String, dynamic>.from(res['summary'] ?? {});
-          _totalPesanan = res['total_pesanan'] ?? _riwayat.length;
-          _totalPendapatan = res['total_pendapatan'] ?? res['data']?['total_pendapatan'] ?? 0;
-          _periodeLabel = res['periode']?['label'] ?? _periodeLabel;
+          final dataMap = res['data'] is Map ? Map<String, dynamic>.from(res['data'] as Map) : <String, dynamic>{};
+          _riwayat = res['riwayat'] is List
+              ? res['riwayat']
+              : (dataMap['transactions'] is List ? dataMap['transactions'] : []);
+          _topMenus = res['top_menus'] is List ? res['top_menus'] : [];
+          _summary = res['summary'] is Map
+              ? Map<String, dynamic>.from(res['summary'] as Map)
+              : <String, dynamic>{};
+          _totalPesanan = res['total_pesanan'] != null
+              ? _toInt(res['total_pesanan'])
+              : _riwayat.length;
+          _totalPendapatan = res['total_pendapatan'] ?? dataMap['total_pendapatan'] ?? 0;
+          _periodeLabel = res['periode']?['label']?.toString() ?? _periodeLabel;
         }
       });
     }
@@ -70,7 +92,8 @@ class _KasirRiwayatScreenState extends State<KasirRiwayatScreen> {
       } else if (periode == 'mingguan') {
         _startDate = now.subtract(const Duration(days: 6));
         _endDate = now;
-        _periodeLabel = '7 Hari Terakhir (${DateFormat('dd MMM').format(_startDate!)} - ${DateFormat('dd MMM yyyy').format(now)})';
+        _periodeLabel =
+            '7 Hari Terakhir (${DateFormat('dd MMM').format(_startDate!)} - ${DateFormat('dd MMM yyyy').format(now)})';
       } else if (periode == 'bulanan') {
         _startDate = DateTime(now.year, now.month, 1);
         _endDate = now;
@@ -107,7 +130,8 @@ class _KasirRiwayatScreenState extends State<KasirRiwayatScreen> {
         _selectedPeriode = 'kustom';
         _startDate = picked.start;
         _endDate = picked.end;
-        _periodeLabel = '${DateFormat('dd/MM/yyyy').format(picked.start)} - ${DateFormat('dd/MM/yyyy').format(picked.end)}';
+        _periodeLabel =
+            '${DateFormat('dd/MM/yyyy').format(picked.start)} - ${DateFormat('dd/MM/yyyy').format(picked.end)}';
       });
       _fetchRiwayat();
     }
@@ -166,8 +190,8 @@ class _KasirRiwayatScreenState extends State<KasirRiwayatScreen> {
   }
 
   String _formatCurrency(dynamic value) {
-    final numVal = (value is int) ? value.toDouble() : (value as double? ?? 0.0);
-    return NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0).format(numVal);
+    final amount = _toDouble(value);
+    return NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0).format(amount);
   }
 
   @override
@@ -398,9 +422,9 @@ class _KasirRiwayatScreenState extends State<KasirRiwayatScreen> {
                       runSpacing: 10,
                       children: _topMenus.take(6).map((item) {
                         final m = Map<String, dynamic>.from(item as Map);
-                        final rank = m['ranking'] ?? 1;
-                        final nama = m['nama_menu'] ?? '-';
-                        final qty = m['total_qty'] ?? 0;
+                        final rank = _toInt(m['ranking'] ?? 1);
+                        final nama = (m['nama_menu'] ?? '-').toString();
+                        final qty = _toInt(m['total_qty']);
                         final nominal = m['total_nominal'] ?? 0;
 
                         Color badgeColor = const Color(0xFF64748B);
@@ -550,18 +574,19 @@ class _KasirRiwayatScreenState extends State<KasirRiwayatScreen> {
                       separatorBuilder: (_, __) => const Divider(height: 1, color: Color(0xFFF1F5F9)),
                       itemBuilder: (context, i) {
                         final tx = Map<String, dynamic>.from(_riwayat[i] as Map);
-                        final meja = tx['nomor_meja'] ?? '-';
-                        final kode = tx['kode_pesanan'] ?? '-';
-                        final antrean = tx['nomor_antrian'] ?? '-';
-                        final nama = tx['nama_pemesan'] ?? 'Tamu';
+                        final meja = (tx['nomor_meja'] ?? '-').toString();
+                        final kode = (tx['kode_pesanan'] ?? '-').toString();
+                        final antrean = (tx['nomor_antrian'] ?? '-').toString();
+                        final nama = (tx['nama_pemesan'] ?? 'Tamu').toString();
                         final metode = (tx['metode_pembayaran'] ?? 'tunai').toString();
                         final total = tx['total_harga'] ?? tx['total'] ?? 0;
                         final waktu = tx['created_at']?.toString() ?? '-';
 
                         final itemsRaw = (tx['items'] as List<dynamic>?) ?? [];
                         final itemsSummary = itemsRaw.map((it) {
-                          final n = it['nama_menu'] ?? it['nama'] ?? '-';
-                          final q = it['qty'] ?? it['jumlah'] ?? 1;
+                          final itemMap = it is Map ? Map<String, dynamic>.from(it) : <String, dynamic>{};
+                          final n = itemMap['nama_menu'] ?? itemMap['nama'] ?? '-';
+                          final q = _toInt(itemMap['qty'] ?? itemMap['jumlah'] ?? 1);
                           return '${q}x $n';
                         }).join(', ');
 

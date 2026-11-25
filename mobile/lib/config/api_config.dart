@@ -3,3 +3,7 @@ class ApiConfig {
 
   static const String apiBaseUrl = '$baseUrl/api';
 }
+// class ApiConfig {
+//   static const String baseUrl = 'http://localhost:8000';
+//   static const String apiBaseUrl = '$baseUrl/api';
+// }

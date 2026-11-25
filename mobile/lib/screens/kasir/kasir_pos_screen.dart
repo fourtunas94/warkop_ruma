@@ -24,9 +24,8 @@ class KasirPosScreen extends StatefulWidget {
 }
 
 class _KasirPosScreenState extends State<KasirPosScreen> {
-  int _selectedNavIndex = 0; // 0: Antrean Pesanan, 1: Menu, 2: Meja, 3: Riwayat, 4: Pengaturan
+  int _selectedNavIndex = 0;
 
-  // Live Queue & Orders State
   List<dynamic> _orders = [];
   int? _selectedOrderId;
   Map<String, dynamic> _stats = {};
@@ -46,9 +45,8 @@ class _KasirPosScreenState extends State<KasirPosScreen> {
   Timer? _pollingTimer;
   Timer? _clockTimer;
 
-  // Filter & Search states
-  String _filterStatus = 'semua'; // 'baru', 'proses', 'siap', 'semua'
-  String _filterChannel = 'semua'; // 'semua', 'dine_in', 'takeaway'
+  String _filterStatus = 'semua';
+  String _filterChannel = 'semua';
   String _searchQuery = '';
   final TextEditingController _searchController = TextEditingController();
 
@@ -68,6 +66,21 @@ class _KasirPosScreenState extends State<KasirPosScreen> {
     _clockTimer?.cancel();
     _searchController.dispose();
     super.dispose();
+  }
+
+  double _toDouble(dynamic value) {
+    if (value == null) return 0.0;
+    if (value is num) return value.toDouble();
+    final cleaned = value.toString().replaceAll(RegExp(r'[^0-9.-]'), '');
+    return double.tryParse(cleaned) ?? 0.0;
+  }
+
+  int _toInt(dynamic value) {
+    if (value == null) return 0;
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    final cleaned = value.toString().replaceAll(RegExp(r'[^0-9-]'), '');
+    return int.tryParse(cleaned) ?? _toDouble(value).round();
   }
 
   void _startTimers() {
@@ -116,8 +129,8 @@ class _KasirPosScreenState extends State<KasirPosScreen> {
     try {
       final result = await ApiService.kasirPosDashboard();
       if (result['success'] == true && mounted) {
-        final rawList = (result['pesanans'] as List<dynamic>?) ??
-            (result['pesanan_terbaru'] as List<dynamic>?) ??
+        final rawList = (result['pesanans'] is List ? result['pesanans'] : null) ??
+            (result['pesanan_terbaru'] is List ? result['pesanan_terbaru'] : null) ??
             [];
         final list = rawList.where((o) {
           final sp = (o['status_pesanan'] ?? 'menunggu').toString().toLowerCase();
@@ -129,15 +142,19 @@ class _KasirPosScreenState extends State<KasirPosScreen> {
           result['total_pesanan'],
           result['pendapatan'],
           result['counts'],
-          list.map((o) => [
-            o['id'],
-            o['status'],
-            o['status_pesanan'],
-            o['total_harga'],
-            o['total_terbayar'],
-            (o['splits'] as List?)?.length ?? 0,
-            (o['items'] as List?)?.length ?? 0,
-          ]).toList(),
+          list.map((o) {
+            final splitsLen = o['splits'] is List ? (o['splits'] as List).length : 0;
+            final itemsLen = o['items'] is List ? (o['items'] as List).length : 0;
+            return [
+              o['id'],
+              o['status'],
+              o['status_pesanan'],
+              o['total_harga'],
+              o['total_terbayar'],
+              splitsLen,
+              itemsLen,
+            ];
+          }).toList(),
         ]);
 
         if (silent && fingerprint == _lastDataFingerprint && !_loading) {
@@ -148,22 +165,29 @@ class _KasirPosScreenState extends State<KasirPosScreen> {
         setState(() {
           _orders = list;
           _stats = {
-            'total_pesanan': result['total_pesanan'] ?? 0,
+            'total_pesanan': _toInt(result['total_pesanan']),
             'pendapatan': result['pendapatan'] ?? 0,
-            'total_menu': result['total_menu'] ?? 0,
-            'total_meja': result['total_meja'] ?? 0,
+            'total_menu': _toInt(result['total_menu']),
+            'total_meja': _toInt(result['total_meja']),
           };
-          if (result['counts'] != null) {
-            _counts = Map<String, dynamic>.from(result['counts']);
+          if (result['counts'] != null && result['counts'] is Map) {
+            final rawCounts = Map<String, dynamic>.from(result['counts'] as Map);
+            _counts = {
+              'baru_masuk': _toInt(rawCounts['baru_masuk']),
+              'sedang_dibuat': _toInt(rawCounts['sedang_dibuat']),
+              'siap_antar': _toInt(rawCounts['siap_antar']),
+              'belum_bayar': _toInt(rawCounts['belum_bayar']),
+              'semua': _toInt(rawCounts['semua']),
+            };
           } else {
             _calculateLocalCounts(list);
           }
           _loading = false;
 
           if (_orders.isNotEmpty) {
-            final exists = _orders.any((o) => o['id'] == _selectedOrderId);
+            final exists = _orders.any((o) => _toInt(o['id']) == _selectedOrderId);
             if (!exists) {
-              _selectedOrderId = _orders.first['id'];
+              _selectedOrderId = _toInt(_orders.first['id']);
             }
           } else {
             _selectedOrderId = null;
@@ -179,7 +203,7 @@ class _KasirPosScreenState extends State<KasirPosScreen> {
     }
   }
 
-  void _calculateLocalCounts(List<dynamic> list) {
+  void _calculateLocalCounts(List list) {
     int baru = 0;
     int proses = 0;
     int siap = 0;
@@ -207,24 +231,25 @@ class _KasirPosScreenState extends State<KasirPosScreen> {
     };
   }
 
-  // Action methods
   Future<void> _konfirmasiBayar(int orderId, {String? metodePembayaran}) async {
     final res = await ApiService.telahBayar(orderId, metodePembayaran: metodePembayaran);
     if (!mounted) return;
     _showSnack(
-      res['success'] == true ? (res['message'] ?? 'Pembayaran berhasil dikonfirmasi!') : (res['message'] ?? 'Gagal konfirmasi.'),
+      res['success'] == true
+          ? (res['message']?.toString() ?? 'Pembayaran berhasil dikonfirmasi!')
+          : (res['message']?.toString() ?? 'Gagal konfirmasi.'),
       res['success'] == true,
     );
     _fetchDashboard(silent: true);
   }
 
   Future<void> _showValidasiBayarDialog(Map<String, dynamic> order) async {
-    final id = order['id'] as int;
+    final id = _toInt(order['id']);
     final meja = order['nomor_meja']?.toString() ?? '-';
     final nama = order['nama_pemesan']?.toString() ?? 'Tamu';
     final total = order['total_harga'] ?? 0;
     String selectedMetode = (order['metode_pembayaran'] ?? 'tunai').toString().toLowerCase();
-    if (!['tunai', 'qris',].contains(selectedMetode)) {
+    if (!['tunai', 'qris'].contains(selectedMetode)) {
       selectedMetode = 'tunai';
     }
 
@@ -242,12 +267,21 @@ class _KasirPosScreenState extends State<KasirPosScreen> {
             children: [
               const Text(
                 'Validasi Pembayaran Kasir',
-                style: TextStyle(color: AppColors.onSurface, fontSize: 16, fontWeight: FontWeight.bold, fontFamily: 'Epilogue'),
+                style: TextStyle(
+                  color: AppColors.onSurface,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  fontFamily: 'Epilogue',
+                ),
               ),
               const SizedBox(height: 2),
               Text(
                 'Meja $meja — $nama',
-                style: const TextStyle(color: AppColors.onSurfaceVariant, fontSize: 11.5, fontFamily: 'SpaceGrotesk'),
+                style: const TextStyle(
+                  color: AppColors.onSurfaceVariant,
+                  fontSize: 11.5,
+                  fontFamily: 'SpaceGrotesk',
+                ),
               ),
             ],
           ),
@@ -265,10 +299,18 @@ class _KasirPosScreenState extends State<KasirPosScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('TOTAL TAGIHAN', style: TextStyle(color: AppColors.onSurfaceVariant, fontSize: 10)),
+                    const Text(
+                      'TOTAL TAGIHAN',
+                      style: TextStyle(color: AppColors.onSurfaceVariant, fontSize: 10),
+                    ),
                     Text(
                       _formatCurrency(total),
-                      style: const TextStyle(color: AppColors.primary, fontSize: 20, fontWeight: FontWeight.bold, fontFamily: 'Epilogue'),
+                      style: const TextStyle(
+                        color: AppColors.primary,
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        fontFamily: 'Epilogue',
+                      ),
                     ),
                   ],
                 ),
@@ -288,8 +330,18 @@ class _KasirPosScreenState extends State<KasirPosScreen> {
                 ].map((m) {
                   final active = selectedMetode == m.$1;
                   return ChoiceChip(
-                    avatar: Icon(m.$3, size: 16, color: active ? AppColors.onPrimary : AppColors.onSurfaceVariant),
-                    label: Text(m.$2, style: TextStyle(color: active ? AppColors.onPrimary : AppColors.onSurface, fontSize: 12)),
+                    avatar: Icon(
+                      m.$3,
+                      size: 16,
+                      color: active ? AppColors.onPrimary : AppColors.onSurfaceVariant,
+                    ),
+                    label: Text(
+                      m.$2,
+                      style: TextStyle(
+                        color: active ? AppColors.onPrimary : AppColors.onSurface,
+                        fontSize: 12,
+                      ),
+                    ),
                     selected: active,
                     selectedColor: AppColors.primary,
                     backgroundColor: AppColors.surfaceContainerHigh,
@@ -329,28 +381,32 @@ class _KasirPosScreenState extends State<KasirPosScreen> {
     );
   }
 
-Future<void> _prosesPesanan(Map<String, dynamic> order) async {
-    final orderId = order['id'] as int;
+  Future<void> _prosesPesanan(Map<String, dynamic> order) async {
+    final orderId = _toInt(order['id']);
     final res = await ApiService.updateStatusPesanan(orderId, 'proses');
     if (!mounted) return;
 
     final success = res['success'] == true;
     _showSnack(
-      success ? 'Pesanan dikirim ke dapur & tiket dapur dicetak!' : (res['message'] ?? 'Gagal'),
+      success
+          ? 'Pesanan dikirim ke dapur & tiket dapur dicetak!'
+          : (res['message']?.toString() ?? 'Gagal'),
       success,
     );
 
     if (success) {
       await _fetchDashboard(silent: true);
       if (!mounted) return;
-      final updatedOrder = _orders.cast<Map<String, dynamic>?>().firstWhere(
-            (o) => o?['id'] == orderId,
-            orElse: () => {
-              ...order,
-              'status_pesanan': 'proses',
-            },
-          )!;
-      // Otomatis cetak tiket dapur (KOT) langsung ke printer
+      Map<String, dynamic> updatedOrder = {
+        ...order,
+        'status_pesanan': 'proses',
+      };
+      for (final o in _orders) {
+        if (o is Map && _toInt(o['id']) == orderId) {
+          updatedOrder = Map<String, dynamic>.from(o);
+          break;
+        }
+      }
       StrukDialog.printKitchenTicket(updatedOrder);
     }
   }
@@ -364,7 +420,9 @@ Future<void> _prosesPesanan(Map<String, dynamic> order) async {
     final res = await ApiService.siapPesanan(orderId);
     if (!mounted) return;
     _showSnack(
-      res['success'] == true ? 'Pesanan selesai & siap disajikan!' : (res['message'] ?? 'Gagal'),
+      res['success'] == true
+          ? 'Pesanan selesai & siap disajikan!'
+          : (res['message']?.toString() ?? 'Gagal'),
       res['success'] == true,
     );
     _fetchDashboard(silent: true);
@@ -374,7 +432,9 @@ Future<void> _prosesPesanan(Map<String, dynamic> order) async {
     final res = await ApiService.updateStatusPesanan(orderId, 'selesai');
     if (!mounted) return;
     _showSnack(
-      res['success'] == true ? 'Pesanan telah selesai diantar ke meja.' : (res['message'] ?? 'Gagal'),
+      res['success'] == true
+          ? 'Pesanan telah selesai diantar ke meja.'
+          : (res['message']?.toString() ?? 'Gagal'),
       res['success'] == true,
     );
     _fetchDashboard(silent: true);
@@ -392,22 +452,21 @@ Future<void> _prosesPesanan(Map<String, dynamic> order) async {
     );
   }
 
-  List<Map<String, dynamic>> _getMergeableOrders(Map<String, dynamic> currentOrder) {
-    final currentId = currentOrder['id'];
-    final currentMejaId = currentOrder['meja_id'];
+  List _getMergeableOrders(Map<String, dynamic> currentOrder) {
+    final currentId = _toInt(currentOrder['id']);
+    final currentMejaId = '${currentOrder['meja_id']}';
     final candidates = _orders.where((o) {
-      if (o['id'] == currentId) return false;
+      if (_toInt(o['id']) == currentId) return false;
       final st = (o['status'] ?? 'pending').toString().toLowerCase();
       if (st == 'selesai') return false;
-      final sp = (o['splits'] as List<dynamic>?) ?? [];
+      final sp = o['splits'] is List ? (o['splits'] as List) : const [];
       if (sp.any((s) => s['status'] == 'lunas')) return false;
       return true;
     }).map((o) => Map<String, dynamic>.from(o as Map)).toList();
 
-    // Urutkan pesanan dari meja yang sama di paling atas
     candidates.sort((a, b) {
-      final aSame = a['meja_id'] == currentMejaId ? 0 : 1;
-      final bSame = b['meja_id'] == currentMejaId ? 0 : 1;
+      final aSame = '${a['meja_id']}' == currentMejaId ? 0 : 1;
+      final bSame = '${b['meja_id']}' == currentMejaId ? 0 : 1;
       return aSame.compareTo(bSame);
     });
     return candidates;
@@ -420,18 +479,15 @@ Future<void> _prosesPesanan(Map<String, dynamic> order) async {
       return;
     }
 
-    final primaryId = primaryOrder['id'] as int;
+    final primaryId = _toInt(primaryOrder['id']);
     final primaryMeja = primaryOrder['nomor_meja']?.toString() ?? '-';
-    final primaryMejaId = primaryOrder['meja_id'];
+    final primaryMejaId = '${primaryOrder['meja_id']}';
     final primaryNama = primaryOrder['nama_pemesan']?.toString() ?? 'Tamu';
-    final primaryTotal = (primaryOrder['total_harga'] is int)
-        ? primaryOrder['total_harga'] as int
-        : int.tryParse('${primaryOrder['total_harga']}') ?? 0;
+    final primaryTotal = _toDouble(primaryOrder['total_harga']);
 
-    // Default centang semua pesanan dari meja yang sama
     final Set<int> selectedIds = candidates
-        .where((c) => c['meja_id'] == primaryMejaId)
-        .map((c) => c['id'] as int)
+        .where((c) => '${c['meja_id']}' == primaryMejaId)
+        .map((c) => _toInt(c['id']))
         .toSet();
     bool submitting = false;
 
@@ -439,12 +495,10 @@ Future<void> _prosesPesanan(Map<String, dynamic> order) async {
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDlgState) {
-          int combinedTotal = primaryTotal;
+          double combinedTotal = primaryTotal;
           for (final c in candidates) {
-            if (selectedIds.contains(c['id'])) {
-              combinedTotal += (c['total_harga'] is int)
-                  ? c['total_harga'] as int
-                  : int.tryParse('${c['total_harga']}') ?? 0;
+            if (selectedIds.contains(_toInt(c['id']))) {
+              combinedTotal += _toDouble(c['total_harga']);
             }
           }
 
@@ -504,10 +558,10 @@ Future<void> _prosesPesanan(Map<String, dynamic> order) async {
                     ),
                     const SizedBox(height: 10),
                     ...candidates.map((c) {
-                      final cid = c['id'] as int;
+                      final cid = _toInt(c['id']);
                       final checked = selectedIds.contains(cid);
-                      final sameTable = c['meja_id'] == primaryMejaId;
-                      final cItems = (c['items'] as List<dynamic>?) ?? [];
+                      final sameTable = '${c['meja_id']}' == primaryMejaId;
+                      final cItems = c['items'] is List ? (c['items'] as List) : const [];
                       final itemPreview = cItems
                           .take(2)
                           .map((it) => '${it['qty']}x ${it['nama_menu']}')
@@ -702,19 +756,21 @@ Future<void> _prosesPesanan(Map<String, dynamic> order) async {
   }
 
   String _formatCurrency(dynamic value) {
-    final num = (value is int) ? value.toDouble() : (value as double? ?? 0.0);
-    return NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0).format(num);
+    final amount = _toDouble(value);
+    return NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0).format(amount);
   }
 
-  Map<String, dynamic>? get _selectedOrder {
+  Map<String, dynamic>? _findSelectedOrder() {
     if (_orders.isEmpty) return null;
-    return _orders.firstWhere(
-      (o) => o['id'] == _selectedOrderId,
-      orElse: () => _orders.first,
-    ) as Map<String, dynamic>?;
+    for (final o in _orders) {
+      if (o is Map && _toInt(o['id']) == _selectedOrderId) {
+        return Map<String, dynamic>.from(o);
+      }
+    }
+    return _orders.first is Map ? Map<String, dynamic>.from(_orders.first as Map) : null;
   }
 
-  List<dynamic> get _filteredOrders {
+  List _getFilteredOrders() {
     return _orders.where((o) {
       final sp = (o['status_pesanan'] ?? 'menunggu').toString().toLowerCase();
       final st = (o['status'] ?? '').toString().toLowerCase();
@@ -739,7 +795,10 @@ Future<void> _prosesPesanan(Map<String, dynamic> order) async {
         final meja = (o['nomor_meja'] ?? '').toString().toLowerCase();
         final kode = (o['kode_pesanan'] ?? '').toString().toLowerCase();
         final antrian = (o['nomor_antrian'] ?? '').toString().toLowerCase();
-        if (!nama.contains(query) && !meja.contains(query) && !kode.contains(query) && !antrian.contains(query)) {
+        if (!nama.contains(query) &&
+            !meja.contains(query) &&
+            !kode.contains(query) &&
+            !antrian.contains(query)) {
           return false;
         }
       }
@@ -758,17 +817,12 @@ Future<void> _prosesPesanan(Map<String, dynamic> order) async {
         body: SafeArea(
           child: Column(
             children: [
-              // 1. TOP APP BAR (FOCUSED & NEVER OVERFLOWS)
               _buildTopHeader(),
-
-              // 2. MAIN WORKSPACE / SELECTED SCREEN
               Expanded(
                 child: _selectedNavIndex == 0
                     ? _buildKdsWorkspace()
                     : _buildSubScreen(_selectedNavIndex),
               ),
-
-              // 4. RESPONSIVE SUB-FOOTER
               _buildStitchFooter(),
             ],
           ),
@@ -777,9 +831,6 @@ Future<void> _prosesPesanan(Map<String, dynamic> order) async {
     );
   }
 
-  // ───────────────────────────────────────────────────────────────────────────
-  // 1. TOP HEADER (OVERFLOW-PROOF ON ANY DEVICE)
-  // ───────────────────────────────────────────────────────────────────────────
   Widget _buildTopHeader() {
     final screenWidth = MediaQuery.of(context).size.width;
 
@@ -789,15 +840,11 @@ Future<void> _prosesPesanan(Map<String, dynamic> order) async {
       decoration: BoxDecoration(
         color: AppColors.surfaceContainerLowest.withOpacity(0.95),
         border: Border(
-          bottom: BorderSide(
-            color: AppColors.outlineVariant.withOpacity(0.2),
-            width: 1,
-          ),
+          bottom: BorderSide(color: AppColors.outlineVariant.withOpacity(0.2), width: 1),
         ),
       ),
       child: Row(
         children: [
-          // Drawer hamburger icon
           Builder(
             builder: (ctx) => IconButton(
               icon: const Icon(Icons.menu, color: AppColors.primary, size: 22),
@@ -808,9 +855,7 @@ Future<void> _prosesPesanan(Map<String, dynamic> order) async {
             ),
           ),
           const SizedBox(width: 6),
-
-// Coffee Icon Box diganti menjadi Image Box
-Container(
+          Container(
             width: 36,
             height: 36,
             decoration: BoxDecoration(
@@ -820,13 +865,10 @@ Container(
             ),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(9),
-              child: Image.asset(
-                'assets/images/logo.jpeg',
-                fit: BoxFit.cover,
-              ),
+              child: Image.asset('assets/images/logo.jpeg', fit: BoxFit.cover),
             ),
           ),
-          // Brand Title & Sidikalang Badge
+          const SizedBox(width: 8),
           Expanded(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -849,16 +891,16 @@ Container(
                         ),
                       ),
                       const SizedBox(width: 6),
-Container(
+                      Container(
                         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
                         decoration: BoxDecoration(
-                          color: AppColors.secondaryContainer, // Biru muda cerah (#E0F2FE)
+                          color: AppColors.secondaryContainer,
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: const Text(
                           'SIDIKALANG',
                           style: TextStyle(
-                            color: AppColors.primary, // Biru utama (#0284C7)
+                            color: AppColors.primary,
                             fontSize: 8.5,
                             fontWeight: FontWeight.w700,
                             letterSpacing: 0.8,
@@ -882,8 +924,6 @@ Container(
               ],
             ),
           ),
-
-          // Shift & Clock badge (visible if screen is wide enough)
           if (screenWidth >= 760) ...[
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
@@ -898,10 +938,7 @@ Container(
                   Container(
                     width: 6,
                     height: 6,
-                    decoration: const BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: AppColors.primary,
-                    ),
+                    decoration: const BoxDecoration(shape: BoxShape.circle, color: AppColors.primary),
                   ),
                   const SizedBox(width: 6),
                   Text(
@@ -929,8 +966,6 @@ Container(
             ),
             const SizedBox(width: 8),
           ],
-
-          // Mesin Kasir Status (visible on tablet/desktop)
           if (screenWidth >= 620) ...[
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -944,10 +979,7 @@ Container(
                 children: [
                   Icon(Icons.print, size: 12, color: AppColors.secondary),
                   SizedBox(width: 4),
-                  Text(
-                    'Mesin: ',
-                    style: TextStyle(color: AppColors.onSurfaceVariant, fontSize: 10),
-                  ),
+                  Text('Mesin: ', style: TextStyle(color: AppColors.onSurfaceVariant, fontSize: 10)),
                   Text(
                     'AKTIF',
                     style: TextStyle(
@@ -962,8 +994,6 @@ Container(
             ),
             const SizedBox(width: 6),
           ],
-
-          // Refresh Button
           if (widget.cashierMode)
             IconButton(
               icon: const Icon(Icons.sync, color: AppColors.onSurfaceVariant, size: 20),
@@ -972,18 +1002,13 @@ Container(
               constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
               onPressed: () => _fetchDashboard(),
             ),
-
-          // User Profile Avatar Menu
           PopupMenuButton<String>(
             color: AppColors.surfaceContainerHigh,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             icon: Container(
               width: 30,
               height: 30,
-              decoration: const BoxDecoration(
-                shape: BoxShape.circle,
-                color: AppColors.primary,
-              ),
+              decoration: const BoxDecoration(shape: BoxShape.circle, color: AppColors.primary),
               child: const Icon(Icons.person, color: AppColors.onPrimary, size: 17),
             ),
             onSelected: (val) {
@@ -1037,50 +1062,31 @@ Container(
     );
   }
 
-  // ───────────────────────────────────────────────────────────────────────────
-  // 2. KDS WORKSPACE: SUB-HEADER + 70/30 SPLIT
-  // ───────────────────────────────────────────────────────────────────────────
   Widget _buildKdsWorkspace() {
+    final selectedOrder = _findSelectedOrder();
     return LoadingOverlay(
       isLoading: _loading,
       child: Column(
         children: [
-          // Sub-Header Pulse & Fast Search
           _buildSubHeaderPulse(),
-
-          // Main 70/30 Split Layout
           Expanded(
             child: LayoutBuilder(
               builder: (context, constraints) {
                 final isWide = constraints.maxWidth >= 960;
-
                 if (isWide) {
                   return Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // LEFT PANEL: 68% WIDTH
-                      Expanded(
-                        flex: 68,
-                        child: _buildQueueFeed(isWide: true),
-                      ),
-                      // VERTICAL SEPARATOR
-                      Container(
-                        width: 1,
-                        color: AppColors.outlineVariant.withOpacity(0.2),
-                      ),
-                      // RIGHT PANEL: 32% WIDTH (TICKET)
-                      Expanded(
-                        flex: 32,
-                        child: _buildTicketDetailPanel(),
-                      ),
+                      Expanded(flex: 68, child: _buildQueueFeed(isWide: true)),
+                      Container(width: 1, color: AppColors.outlineVariant.withOpacity(0.2)),
+                      Expanded(flex: 32, child: _buildTicketDetailPanel()),
                     ],
                   );
                 } else {
-                  // MOBILE / TABLET PORTRAIT
                   return Stack(
                     children: [
                       _buildQueueFeed(isWide: false),
-                      if (_selectedOrder != null)
+                      if (selectedOrder != null)
                         Positioned(
                           left: 12,
                           right: 12,
@@ -1098,22 +1104,15 @@ Container(
     );
   }
 
-  // ───────────────────────────────────────────────────────────────────────────
-  // SUB-HEADER BAR: REALTIME PULSE & FAST SEARCH (RESPONSIVE)
-  // ───────────────────────────────────────────────────────────────────────────
   Widget _buildSubHeaderPulse() {
-    final activeOrdersCount = _orders.where((o) => (o['status_pesanan'] ?? 'menunggu') != 'selesai').length;
+    final activeOrdersCount =
+        _orders.where((o) => (o['status_pesanan'] ?? 'menunggu') != 'selesai').length;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
       decoration: BoxDecoration(
         color: AppColors.surfaceContainerLowest.withOpacity(0.6),
-        border: Border(
-          bottom: BorderSide(
-            color: AppColors.outlineVariant.withOpacity(0.15),
-            width: 1,
-          ),
-        ),
+        border: Border(bottom: BorderSide(color: AppColors.outlineVariant.withOpacity(0.15), width: 1)),
       ),
       child: Wrap(
         alignment: WrapAlignment.spaceBetween,
@@ -1121,7 +1120,6 @@ Container(
         spacing: 12,
         runSpacing: 8,
         children: [
-          // Queue Load & Today's Revenue
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -1129,11 +1127,17 @@ Container(
               const SizedBox(width: 4),
               RichText(
                 text: TextSpan(
-                  style: const TextStyle(fontSize: 11.5, fontFamily: 'SpaceGrotesk', color: AppColors.onSurfaceVariant),
+                  style: const TextStyle(
+                    fontSize: 11.5,
+                    fontFamily: 'SpaceGrotesk',
+                    color: AppColors.onSurfaceVariant,
+                  ),
                   children: [
                     const TextSpan(text: 'Beban: '),
                     TextSpan(
-                      text: activeOrdersCount > 5 ? 'Tinggi ' : (activeOrdersCount > 2 ? 'Sedang ' : 'Normal '),
+                      text: activeOrdersCount > 5
+                          ? 'Tinggi '
+                          : (activeOrdersCount > 2 ? 'Sedang ' : 'Normal '),
                       style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold),
                     ),
                     TextSpan(text: '($activeOrdersCount Aktif)'),
@@ -1149,13 +1153,16 @@ Container(
                 const SizedBox(width: 4),
                 Text(
                   'Omzet: ${_formatCurrency(_stats['pendapatan'])}',
-                  style: const TextStyle(fontSize: 11.5, fontFamily: 'SpaceGrotesk', color: AppColors.primary, fontWeight: FontWeight.bold),
+                  style: const TextStyle(
+                    fontSize: 11.5,
+                    fontFamily: 'SpaceGrotesk',
+                    color: AppColors.primary,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ],
             ],
           ),
-
-          // Search Box
           SizedBox(
             width: 210,
             height: 34,
@@ -1182,11 +1189,8 @@ Container(
     );
   }
 
-  // ───────────────────────────────────────────────────────────────────────────
-  // LEFT PANEL: THE ORDERS FEED & FILTER PILLS
-  // ───────────────────────────────────────────────────────────────────────────
   Widget _buildQueueFeed({required bool isWide}) {
-    final filtered = _filteredOrders;
+    final filtered = _getFilteredOrders();
 
     return RefreshIndicator(
       color: AppColors.primary,
@@ -1195,19 +1199,13 @@ Container(
       child: ListView(
         padding: const EdgeInsets.all(12),
         children: [
-          // Filter Status & Channel Bar
           _buildFilterAndChannelBar(),
           const SizedBox(height: 12),
-
-          // Orders Feed Grid
           if (filtered.isEmpty && !_loading)
             _buildEmptyOrdersState()
           else
             _buildOrdersGrid(filtered, isWide),
-
           const SizedBox(height: 16),
-
-          // Mini Operational Insights & Station Health
           _buildStationHealthCard(),
           const SizedBox(height: 50),
         ],
@@ -1226,7 +1224,6 @@ Container(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Status Pills (Horizontally scrollable with bounded width)
           SizedBox(
             width: double.infinity,
             child: SingleChildScrollView(
@@ -1237,7 +1234,7 @@ Container(
                   _buildStatusPill(
                     id: 'baru',
                     label: 'Baru Masuk',
-                    count: _counts['baru_masuk'] ?? 0,
+                    count: _toInt(_counts['baru_masuk']),
                     icon: Icons.fiber_manual_record,
                     activeColor: AppColors.primary,
                     activeTextColor: AppColors.onPrimary,
@@ -1246,7 +1243,7 @@ Container(
                   _buildStatusPill(
                     id: 'proses',
                     label: 'Sedang Dibuat',
-                    count: _counts['sedang_dibuat'] ?? 0,
+                    count: _toInt(_counts['sedang_dibuat']),
                     icon: Icons.blender,
                     activeColor: AppColors.tertiary,
                     activeTextColor: AppColors.onPrimaryContainer,
@@ -1255,7 +1252,7 @@ Container(
                   _buildStatusPill(
                     id: 'siap',
                     label: 'Siap Antar',
-                    count: _counts['siap_antar'] ?? 0,
+                    count: _toInt(_counts['siap_antar']),
                     icon: Icons.check_circle_outline,
                     activeColor: AppColors.secondary,
                     activeTextColor: AppColors.onSecondary,
@@ -1264,7 +1261,7 @@ Container(
                   _buildStatusPill(
                     id: 'belum_bayar',
                     label: 'Belum Bayar',
-                    count: _counts['belum_bayar'] ?? 0,
+                    count: _toInt(_counts['belum_bayar']),
                     icon: Icons.payments_outlined,
                     activeColor: AppColors.red,
                     activeTextColor: Colors.white,
@@ -1273,7 +1270,7 @@ Container(
                   _buildStatusPill(
                     id: 'semua',
                     label: 'Semua',
-                    count: _counts['semua'] ?? _orders.length,
+                    count: _counts['semua'] != null ? _toInt(_counts['semua']) : _orders.length,
                     icon: Icons.list_alt,
                     activeColor: AppColors.surfaceContainerHighest,
                     activeTextColor: AppColors.onSurface,
@@ -1283,8 +1280,6 @@ Container(
             ),
           ),
           const SizedBox(height: 6),
-
-          // Channel Toggles
           Container(
             padding: const EdgeInsets.all(2),
             decoration: BoxDecoration(
@@ -1340,11 +1335,7 @@ Container(
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              icon,
-              size: 11,
-              color: active ? activeTextColor : AppColors.onSurfaceVariant,
-            ),
+            Icon(icon, size: 11, color: active ? activeTextColor : AppColors.onSurfaceVariant),
             const SizedBox(width: 4),
             Text(
               label,
@@ -1397,11 +1388,7 @@ Container(
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              icon,
-              size: 11,
-              color: active ? AppColors.primary : AppColors.onSurfaceVariant,
-            ),
+            Icon(icon, size: 11, color: active ? AppColors.primary : AppColors.onSurfaceVariant),
             const SizedBox(width: 3),
             Text(
               label,
@@ -1418,10 +1405,7 @@ Container(
     );
   }
 
-  // ───────────────────────────────────────────────────────────────────────────
-  // ORDERS GRID (RESPONSIVE)
-  // ───────────────────────────────────────────────────────────────────────────
-  Widget _buildOrdersGrid(List<dynamic> list, bool isWide) {
+  Widget _buildOrdersGrid(List list, bool isWide) {
     return LayoutBuilder(
       builder: (context, box) {
         final useTwoColumns = box.maxWidth >= 640;
@@ -1452,11 +1436,8 @@ Container(
     );
   }
 
-  // ───────────────────────────────────────────────────────────────────────────
-  // INDIVIDUAL ORDER CARD
-  // ───────────────────────────────────────────────────────────────────────────
   Widget _buildOrderCard(dynamic order) {
-    final id = order['id'] as int;
+    final id = _toInt(order['id']);
     final isSelected = id == _selectedOrderId;
     final meja = order['nomor_meja']?.toString() ?? '-';
     final nama = order['nama_pemesan']?.toString() ?? 'Tamu';
@@ -1465,7 +1446,7 @@ Container(
     final totalHarga = order['total_harga'] ?? 0;
     final statusBayar = (order['status'] ?? 'pending').toString().toLowerCase();
     final statusPesanan = (order['status_pesanan'] ?? 'menunggu').toString().toLowerCase();
-    final items = (order['items'] as List<dynamic>?) ?? [];
+    final items = order['items'] is List ? (order['items'] as List) : const [];
     final channel = (order['channel'] ?? 'dine_in') == 'dine_in' ? 'Dine-In' : 'Bungkus';
 
     final itemsSummary = items.take(2).map((it) => it['nama_menu']).join(' + ');
@@ -1512,13 +1493,10 @@ Container(
                   decoration: const BoxDecoration(
                     shape: BoxShape.circle,
                     color: AppColors.primary,
-                    boxShadow: [
-                      BoxShadow(color: AppColors.primary, blurRadius: 8, spreadRadius: 1.5),
-                    ],
+                    boxShadow: [BoxShadow(color: AppColors.primary, blurRadius: 8, spreadRadius: 1.5)],
                   ),
                 ),
               ),
-
             Padding(
               padding: const EdgeInsets.all(12),
               child: Column(
@@ -1528,7 +1506,6 @@ Container(
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Header Row
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
@@ -1595,10 +1572,7 @@ Container(
                                 Container(
                                   width: 4.5,
                                   height: 4.5,
-                                  decoration: const BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    color: AppColors.primary,
-                                  ),
+                                  decoration: const BoxDecoration(shape: BoxShape.circle, color: AppColors.primary),
                                 ),
                                 const SizedBox(width: 3.5),
                                 Text(
@@ -1616,19 +1590,13 @@ Container(
                         ],
                       ),
                       const SizedBox(height: 8),
-
-                      // Visual Accent Banner
-Container(
+                      Container(
                         height: 54,
                         width: double.infinity,
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(8),
                           gradient: const LinearGradient(
-                            colors: [
-                              Color(0xFFF0F9FF), // Sky 50
-                              Color(0xFFE0F2FE), // Sky 100
-                              Color(0xFFBAE6FD), // Sky 200
-                            ],
+                            colors: [Color(0xFFF0F9FF), Color(0xFFE0F2FE), Color(0xFFBAE6FD)],
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
                           ),
@@ -1672,8 +1640,6 @@ Container(
                         ),
                       ),
                       const SizedBox(height: 8),
-
-                      // Item Preview Ledger
                       Container(
                         padding: const EdgeInsets.all(7),
                         decoration: BoxDecoration(
@@ -1682,8 +1648,8 @@ Container(
                         ),
                         child: Column(
                           children: items.take(2).map((item) {
-                            final qty = item['qty'] ?? 1;
-                            final namaMenu = item['nama_menu'] ?? '-';
+                            final qty = _toInt(item['qty'] ?? 1);
+                            final namaMenu = item['nama_menu']?.toString() ?? '-';
                             final harga = item['subtotal'] ?? (item['harga'] ?? 0);
                             final catatan = item['catatan']?.toString();
 
@@ -1754,8 +1720,6 @@ Container(
                       ),
                     ],
                   ),
-
-                  // Card Footer
                   Column(
                     children: [
                       const Divider(color: AppColors.surfaceContainerHigh, height: 14),
@@ -1782,8 +1746,6 @@ Container(
                         ],
                       ),
                       const SizedBox(height: 6),
-
-                      // Action Button Row
                       Row(
                         children: [
                           Expanded(
@@ -1858,7 +1820,6 @@ Container(
                             ),
                           ),
                           const SizedBox(width: 6),
-
                           IconButton(
                             style: IconButton.styleFrom(
                               backgroundColor: isSelected
@@ -1892,11 +1853,8 @@ Container(
     );
   }
 
-  // ───────────────────────────────────────────────────────────────────────────
-  // RIGHT PANEL (DESKTOP): ACTIVE KITCHEN TICKET
-  // ───────────────────────────────────────────────────────────────────────────
   Widget _buildTicketDetailPanel() {
-    final order = _selectedOrder;
+    final order = _findSelectedOrder();
 
     if (order == null) {
       return Center(
@@ -1921,20 +1879,20 @@ Container(
   }
 
   Widget _buildKitchenTicketContent(Map<String, dynamic> order) {
-    final id = order['id'] as int;
+    final id = _toInt(order['id']);
     final meja = order['nomor_meja']?.toString() ?? '-';
     final nama = order['nama_pemesan']?.toString() ?? 'Tamu';
     final kode = order['kode_pesanan']?.toString() ?? '#WR-$id';
     final statusBayar = (order['status'] ?? 'pending').toString().toLowerCase();
     final statusPesanan = (order['status_pesanan'] ?? 'menunggu').toString().toLowerCase();
     final metodeLabel = order['metode_label']?.toString() ?? 'Tunai';
-    final items = (order['items'] as List<dynamic>?) ?? [];
-    final splits = (order['splits'] as List<dynamic>?) ?? [];
-    final totalTerbayar = order['total_terbayar'] ?? 0;
+    final items = order['items'] is List ? (order['items'] as List) : const [];
+    final splits = order['splits'] is List ? (order['splits'] as List) : const [];
+    final totalTerbayarVal = _toDouble(order['total_terbayar']);
     final sisaTagihan = order['sisa_tagihan'] ?? 0;
-    final totalHarga = order['total_harga'] ?? 0;
-    final potongan = order['potongan'] ?? 0;
-    final subtotal = (totalHarga is int ? totalHarga : 0) + (potongan is int ? potongan : 0);
+    final totalHargaVal = _toDouble(order['total_harga']);
+    final potonganVal = _toDouble(order['potongan']);
+    final subtotal = totalHargaVal + potonganVal;
 
     return Container(
       decoration: BoxDecoration(
@@ -1952,7 +1910,6 @@ Container(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Top Metallic Line
           Container(
             height: 3.5,
             decoration: const BoxDecoration(
@@ -1962,7 +1919,6 @@ Container(
               ),
             ),
           ),
-
           Padding(
             padding: const EdgeInsets.all(14),
             child: Column(
@@ -1983,10 +1939,7 @@ Container(
                           Container(
                             width: 5,
                             height: 5,
-                            decoration: const BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: AppColors.secondary,
-                            ),
+                            decoration: const BoxDecoration(shape: BoxShape.circle, color: AppColors.secondary),
                           ),
                           const SizedBox(width: 4),
                           const Text(
@@ -2013,7 +1966,6 @@ Container(
                   ],
                 ),
                 const SizedBox(height: 8),
-
                 Text(
                   'Meja $meja — $nama',
                   style: const TextStyle(
@@ -2034,8 +1986,6 @@ Container(
                   ),
                 ),
                 const SizedBox(height: 10),
-
-                // Payment Ribbon
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
                   decoration: BoxDecoration(
@@ -2117,7 +2067,6 @@ Container(
                     ],
                   ),
                 ),
-
                 if (splits.isNotEmpty) ...[
                   const SizedBox(height: 8),
                   Container(
@@ -2189,11 +2138,15 @@ Container(
                             ),
                           );
                         }),
-                        if (totalTerbayar is int && totalTerbayar > 0 && statusBayar != 'selesai') ...[
+                        if (totalTerbayarVal > 0 && statusBayar != 'selesai') ...[
                           const SizedBox(height: 4),
                           Text(
-                            'Terbayar: ${_formatCurrency(totalTerbayar)}',
-                            style: const TextStyle(color: AppColors.green, fontSize: 9.5, fontFamily: 'SpaceGrotesk'),
+                            'Terbayar: ${_formatCurrency(totalTerbayarVal)}',
+                            style: const TextStyle(
+                              color: AppColors.green,
+                              fontSize: 9.5,
+                              fontFamily: 'SpaceGrotesk',
+                            ),
                           ),
                         ],
                       ],
@@ -2201,8 +2154,6 @@ Container(
                   ),
                 ],
                 const SizedBox(height: 12),
-
-                // Itemized Modifiers Ticket Section
                 const Text(
                   'Rincian Menu & Catatan Barista:',
                   style: TextStyle(
@@ -2213,12 +2164,11 @@ Container(
                   ),
                 ),
                 const SizedBox(height: 6),
-
                 ...items.map((it) {
-                  final qty = it['qty'] ?? 1;
-                  final namaMenu = it['nama_menu'] ?? '-';
+                  final qty = _toInt(it['qty'] ?? 1);
+                  final namaMenu = it['nama_menu']?.toString() ?? '-';
                   final harga = it['subtotal'] ?? (it['harga'] ?? 0);
-                  final kategori = it['kategori'] ?? 'Kopi & Minuman';
+                  final kategori = it['kategori']?.toString() ?? 'Kopi & Minuman';
                   final catatan = it['catatan']?.toString();
 
                   return Container(
@@ -2315,10 +2265,7 @@ Container(
                     ),
                   );
                 }),
-
                 const SizedBox(height: 4),
-
-                // Cost Breakdown
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
@@ -2336,17 +2283,28 @@ Container(
                           ),
                           Text(
                             _formatCurrency(subtotal),
-                            style: const TextStyle(color: AppColors.onSurface, fontSize: 10.5, fontFamily: 'SpaceGrotesk'),
+                            style: const TextStyle(
+                              color: AppColors.onSurface,
+                              fontSize: 10.5,
+                              fontFamily: 'SpaceGrotesk',
+                            ),
                           ),
                         ],
                       ),
-                      if (potongan > 0) ...[
+                      if (potonganVal > 0) ...[
                         const SizedBox(height: 3),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             const Text('Diskon Promo', style: TextStyle(color: AppColors.secondary, fontSize: 10.5)),
-                            Text('- ${_formatCurrency(potongan)}', style: const TextStyle(color: AppColors.secondary, fontSize: 10.5, fontFamily: 'SpaceGrotesk')),
+                            Text(
+                              '- ${_formatCurrency(potonganVal)}',
+                              style: const TextStyle(
+                                color: AppColors.secondary,
+                                fontSize: 10.5,
+                                fontFamily: 'SpaceGrotesk',
+                              ),
+                            ),
                           ],
                         ),
                       ],
@@ -2359,7 +2317,12 @@ Container(
                             children: [
                               const Text(
                                 'TOTAL TAGIHAN',
-                                style: TextStyle(color: AppColors.onSurfaceVariant, fontSize: 8.5, letterSpacing: 0.8, fontFamily: 'SpaceGrotesk'),
+                                style: TextStyle(
+                                  color: AppColors.onSurfaceVariant,
+                                  fontSize: 8.5,
+                                  letterSpacing: 0.8,
+                                  fontFamily: 'SpaceGrotesk',
+                                ),
                               ),
                               Text(
                                 statusBayar == 'selesai' ? 'Lunas via $metodeLabel' : 'Belum Lunas',
@@ -2372,7 +2335,7 @@ Container(
                             ],
                           ),
                           Text(
-                            _formatCurrency(totalHarga),
+                            _formatCurrency(totalHargaVal),
                             style: const TextStyle(
                               color: AppColors.primary,
                               fontSize: 19,
@@ -2386,16 +2349,12 @@ Container(
                   ),
                 ),
                 const SizedBox(height: 12),
-
-                // 1. Proses Dapur (Independen — bisa langsung diproses sebelum bayar)
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
                     backgroundColor: statusPesanan == 'selesai'
                         ? AppColors.surfaceContainerHighest
                         : AppColors.primaryContainer,
-                    foregroundColor: statusPesanan == 'selesai'
-                        ? AppColors.green
-                        : AppColors.onPrimary,
+                    foregroundColor: statusPesanan == 'selesai' ? AppColors.green : AppColors.onPrimary,
                     padding: const EdgeInsets.symmetric(vertical: 11),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                     elevation: statusPesanan == 'selesai' ? 0 : 2,
@@ -2442,8 +2401,6 @@ Container(
                   ),
                 ),
                 const SizedBox(height: 8),
-
-                // 2. Validasi Pembayaran Kasir (Saat Pulang — Penuh atau Split Bill)
                 if (statusBayar != 'selesai') ...[
                   Row(
                     children: [
@@ -2464,7 +2421,11 @@ Container(
                             splits.isNotEmpty
                                 ? 'Bayar Split (${_formatCurrency(sisaTagihan)})'
                                 : 'Validasi Bayar',
-                            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, fontFamily: 'SpaceGrotesk'),
+                            style: const TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              fontFamily: 'SpaceGrotesk',
+                            ),
                           ),
                           onPressed: () {
                             if (splits.isNotEmpty) {
@@ -2487,7 +2448,11 @@ Container(
                           icon: const Icon(Icons.call_split, size: 15),
                           label: Text(
                             splits.isNotEmpty ? 'Kelola Split' : 'Split Bill',
-                            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, fontFamily: 'SpaceGrotesk'),
+                            style: const TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              fontFamily: 'SpaceGrotesk',
+                            ),
                           ),
                           onPressed: () => _openSplitBillDialog(order),
                         ),
@@ -2499,7 +2464,8 @@ Container(
                     Builder(
                       builder: (_) {
                         final mergeables = _getMergeableOrders(order);
-                        final sameTableCount = mergeables.where((m) => m['meja_id'] == order['meja_id']).length;
+                        final sameTableCount =
+                            mergeables.where((m) => '${m['meja_id']}' == '${order['meja_id']}').length;
                         return SizedBox(
                           width: double.infinity,
                           child: OutlinedButton.icon(
@@ -2514,7 +2480,11 @@ Container(
                               sameTableCount > 0
                                   ? 'Gabung Pesanan ($sameTableCount lagi di Meja $meja)'
                                   : 'Gabung Pesanan (Merge Bill)',
-                              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, fontFamily: 'SpaceGrotesk'),
+                              style: const TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                                fontFamily: 'SpaceGrotesk',
+                              ),
                             ),
                             onPressed: () => _showMergeBillDialog(order),
                           ),
@@ -2543,8 +2513,6 @@ Container(
                   ),
                   const SizedBox(height: 7),
                 ],
-
-                // Secondary Actions Row
                 Row(
                   children: [
                     Expanded(
@@ -2556,7 +2524,10 @@ Container(
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                         ),
                         icon: const Icon(Icons.receipt_long, size: 14),
-                        label: const Text('Cetak Struk', style: TextStyle(fontSize: 10.5, fontFamily: 'SpaceGrotesk')),
+                        label: const Text(
+                          'Cetak Struk',
+                          style: TextStyle(fontSize: 10.5, fontFamily: 'SpaceGrotesk'),
+                        ),
                         onPressed: () => _cetakStruk(order),
                       ),
                     ),
@@ -2570,7 +2541,10 @@ Container(
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                         ),
                         icon: const Icon(Icons.check_circle_outline, size: 14),
-                        label: const Text('Siap Saji', style: TextStyle(fontSize: 10.5, fontFamily: 'SpaceGrotesk')),
+                        label: const Text(
+                          'Siap Saji',
+                          style: TextStyle(fontSize: 10.5, fontFamily: 'SpaceGrotesk'),
+                        ),
                         onPressed: () => _siapPesanan(id),
                       ),
                     ),
@@ -2579,8 +2553,6 @@ Container(
               ],
             ),
           ),
-
-          // Secondary POS Bar
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
             decoration: BoxDecoration(
@@ -2596,7 +2568,11 @@ Container(
                     SizedBox(width: 4),
                     Text(
                       'Bluetooth Struk POS: Ready',
-                      style: TextStyle(color: AppColors.onSurfaceVariant, fontSize: 8.5, fontFamily: 'SpaceGrotesk'),
+                      style: TextStyle(
+                        color: AppColors.onSurfaceVariant,
+                        fontSize: 8.5,
+                        fontFamily: 'SpaceGrotesk',
+                      ),
                     ),
                   ],
                 ),
@@ -2640,7 +2616,10 @@ Container(
                       children: [
                         Icon(Icons.print, size: 12, color: AppColors.primary),
                         SizedBox(width: 3),
-                        Text('Cetak', style: TextStyle(color: AppColors.primary, fontSize: 9.5, fontWeight: FontWeight.bold)),
+                        Text(
+                          'Cetak',
+                          style: TextStyle(color: AppColors.primary, fontSize: 9.5, fontWeight: FontWeight.bold),
+                        ),
                         Icon(Icons.arrow_drop_down, size: 12, color: AppColors.primary),
                       ],
                     ),
@@ -2654,11 +2633,8 @@ Container(
     );
   }
 
-  // ───────────────────────────────────────────────────────────────────────────
-  // MOBILE BOTTOM TICKET BAR & SHEET
-  // ───────────────────────────────────────────────────────────────────────────
   Widget _buildMobileTicketBar() {
-    final order = _selectedOrder;
+    final order = _findSelectedOrder();
     if (order == null) return const SizedBox.shrink();
 
     final meja = order['nomor_meja']?.toString() ?? '-';
@@ -2685,10 +2661,7 @@ Container(
           children: [
             Container(
               padding: const EdgeInsets.all(7),
-              decoration: BoxDecoration(
-                color: AppColors.primary,
-                borderRadius: BorderRadius.circular(7),
-              ),
+              decoration: BoxDecoration(color: AppColors.primary, borderRadius: BorderRadius.circular(7)),
               child: const Icon(Icons.receipt_long, color: AppColors.onPrimary, size: 16),
             ),
             const SizedBox(width: 10),
@@ -2730,7 +2703,7 @@ Container(
   }
 
   void _openMobileTicketSheet() {
-    final order = _selectedOrder;
+    final order = _findSelectedOrder();
     if (order == null) return;
 
     showModalBottomSheet(
@@ -2766,9 +2739,6 @@ Container(
     );
   }
 
-  // ───────────────────────────────────────────────────────────────────────────
-  // STATION HEALTH CARD (BOTTOM OF QUEUE)
-  // ───────────────────────────────────────────────────────────────────────────
   Widget _buildStationHealthCard() {
     return Container(
       padding: const EdgeInsets.all(12),
@@ -2861,10 +2831,7 @@ Container(
             Container(
               width: 50,
               height: 50,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: AppColors.primary.withOpacity(0.1),
-              ),
+              decoration: BoxDecoration(shape: BoxShape.circle, color: AppColors.primary.withOpacity(0.1)),
               child: const Icon(Icons.coffee, size: 24, color: AppColors.primary),
             ),
             const SizedBox(height: 12),
@@ -2899,20 +2866,12 @@ Container(
     );
   }
 
-  // ───────────────────────────────────────────────────────────────────────────
-  // 4. RESPONSIVE SUB-FOOTER
-  // ───────────────────────────────────────────────────────────────────────────
   Widget _buildStitchFooter() {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
       decoration: BoxDecoration(
         color: AppColors.surfaceContainerLowest.withOpacity(0.9),
-        border: Border(
-          top: BorderSide(
-            color: AppColors.outlineVariant.withOpacity(0.15),
-            width: 1,
-          ),
-        ),
+        border: Border(top: BorderSide(color: AppColors.outlineVariant.withOpacity(0.15), width: 1)),
       ),
       child: const Wrap(
         alignment: WrapAlignment.spaceBetween,
@@ -2930,19 +2889,13 @@ Container(
                 padding: EdgeInsets.symmetric(horizontal: 4),
                 child: Text('•', style: TextStyle(color: AppColors.outline, fontSize: 9)),
               ),
-              Text(
-                'POS & KDS v2.4',
-                style: TextStyle(color: AppColors.onSurfaceVariant, fontSize: 9.5),
-              ),
+              Text('POS & KDS v2.4', style: TextStyle(color: AppColors.onSurfaceVariant, fontSize: 9.5)),
             ],
           ),
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(
-                'Terminal #01',
-                style: TextStyle(color: AppColors.onSurfaceVariant, fontSize: 9.5),
-              ),
+              Text('Terminal #01', style: TextStyle(color: AppColors.onSurfaceVariant, fontSize: 9.5)),
               Padding(
                 padding: EdgeInsets.symmetric(horizontal: 4),
                 child: Text('•', style: TextStyle(color: AppColors.outline, fontSize: 9)),
@@ -2958,9 +2911,6 @@ Container(
     );
   }
 
-  // ───────────────────────────────────────────────────────────────────────────
-  // SUB-SCREENS
-  // ───────────────────────────────────────────────────────────────────────────
   Widget _buildSubScreen(int index) {
     switch (index) {
       case 1:
@@ -2976,10 +2926,6 @@ Container(
     }
   }
 
-  // ───────────────────────────────────────────────────────────────────────────
-// ───────────────────────────────────────────────────────────────────────────
-  // SIDE DRAWER (DARK NAVY ALA SIDEBAR DASHBOARD ADMIN)
-  // ───────────────────────────────────────────────────────────────────────────
   Widget _buildDrawer() {
     return Drawer(
       backgroundColor: AppColors.sidebarBg,
@@ -2989,9 +2935,7 @@ Container(
             padding: const EdgeInsets.fromLTRB(16, 28, 16, 20),
             decoration: const BoxDecoration(
               color: AppColors.sidebarBg,
-              border: Border(
-                bottom: BorderSide(color: Color(0xFF1E293B), width: 1),
-              ),
+              border: Border(bottom: BorderSide(color: Color(0xFF1E293B), width: 1)),
             ),
             child: Row(
               children: [
@@ -3072,11 +3016,7 @@ Container(
               leading: const Icon(Icons.logout, color: Color(0xFFF87171), size: 20),
               title: const Text(
                 'Keluar',
-                style: TextStyle(
-                  color: Color(0xFFF87171),
-                  fontWeight: FontWeight.bold,
-                  fontSize: 12.5,
-                ),
+                style: TextStyle(color: Color(0xFFF87171), fontWeight: FontWeight.bold, fontSize: 12.5),
               ),
               onTap: () {
                 Navigator.pop(context);
@@ -3104,9 +3044,7 @@ Container(
       decoration: BoxDecoration(
         color: active ? AppColors.sidebarActiveBg : Colors.transparent,
         borderRadius: BorderRadius.circular(10),
-        border: active
-            ? Border.all(color: AppColors.primaryContainer.withOpacity(0.45))
-            : null,
+        border: active ? Border.all(color: AppColors.primaryContainer.withOpacity(0.45)) : null,
       ),
       child: ListTile(
         dense: true,
@@ -3133,5 +3071,3 @@ Container(
     );
   }
 }
-
-

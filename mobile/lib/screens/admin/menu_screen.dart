@@ -44,15 +44,32 @@ class _MenuScreenState extends State<MenuScreen> {
     }
   }
 
+  double _toDouble(dynamic value) {
+    if (value == null) return 0.0;
+    if (value is num) return value.toDouble();
+    final cleaned = value.toString().replaceAll(RegExp(r'[^0-9.-]'), '');
+    return double.tryParse(cleaned) ?? 0.0;
+  }
+
+  bool _toBool(dynamic value, {bool defaultValue = true}) {
+    if (value == null) return defaultValue;
+    if (value is bool) return value;
+    if (value is num) return value != 0;
+    final s = value.toString().trim().toLowerCase();
+    if (s == '1' || s == 'true') return true;
+    if (s == '0' || s == 'false') return false;
+    return defaultValue;
+  }
+
   String _formatCurrency(dynamic value) {
-    final num = (value is int) ? value.toDouble() : (value as double? ?? 0.0);
-    return NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0).format(num);
+    final amount = _toDouble(value);
+    return NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0).format(amount);
   }
 
   bool _isGamesCategory(int? kategoriId) {
     if (kategoriId == null) return false;
     for (final k in _kategoris) {
-      if (k['id'] == kategoriId) {
+      if ('${k['id']}' == '$kategoriId') {
         final namaKat = (k['nama_kategori'] ?? k['nama'] ?? '').toString().toLowerCase();
         return namaKat.contains('game');
       }
@@ -61,16 +78,18 @@ class _MenuScreenState extends State<MenuScreen> {
   }
 
   void _showFormDialog({Map<String, dynamic>? existing}) {
-    final namaController = TextEditingController(text: existing?['nama_menu'] ?? '');
-    int? selectedKategoriId = existing?['kategori_id'];
+    final namaController = TextEditingController(text: existing?['nama_menu']?.toString() ?? '');
+    int? selectedKategoriId = existing?['kategori_id'] is int
+        ? existing!['kategori_id']
+        : int.tryParse('${existing?['kategori_id'] ?? ''}');
     final hargaController = TextEditingController(
       text: existing != null
-          ? (_isGamesCategory(selectedKategoriId) ? 'Gratis' : '${existing['harga']}')
+          ? (_isGamesCategory(selectedKategoriId) ? 'Gratis' : '${existing['harga'] ?? ''}')
           : '',
     );
-    final descController = TextEditingController(text: existing?['deskripsi'] ?? '');
-    bool isTersedia = (existing?['stok'] ?? 1) == 1;
-    bool isActive = (existing?['is_active'] ?? 1) == 1;
+    final descController = TextEditingController(text: existing?['deskripsi']?.toString() ?? '');
+    bool isTersedia = _toBool(existing?['stok'], defaultValue: true);
+    bool isActive = _toBool(existing?['is_active'], defaultValue: true);
     XFile? pickedFile;
     final formKey = GlobalKey<FormState>();
     bool saving = false;
@@ -225,7 +244,7 @@ class _MenuScreenState extends State<MenuScreen> {
                                         items: [
                                           const DropdownMenuItem<int?>(value: null, child: Text('Tanpa Kategori')),
                                           ..._kategoris.map((k) => DropdownMenuItem<int?>(
-                                                value: k['id'],
+                                                value: k['id'] is int ? k['id'] : int.tryParse('${k['id']}'),
                                                 child: Text((k['nama_kategori'] ?? k['nama'] ?? '-').toString()),
                                               )),
                                         ],
@@ -373,7 +392,7 @@ class _MenuScreenState extends State<MenuScreen> {
                       ],
                     ),
                     const SizedBox(height: 4),
-                    const Text('Format: JPG, PNG, WebP. Maks 2MB.', style: TextStyle(color: Color(0xFF94A3B8), fontSize: 11)),
+                    const Text('Format: JPG, PNG, WebP. Maks 2MB.', style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 11)),
                     const SizedBox(height: 24),
 
                     // Buttons
@@ -622,9 +641,9 @@ class _MenuScreenState extends State<MenuScreen> {
                               final nama = (m['nama_menu'] ?? '-').toString();
                               final kat = (m['kategori']?['nama_kategori'] ?? m['nama_kategori'] ?? 'Uncategorized').toString();
                               final harga = m['harga'] ?? 0;
-                              final isGratis = (harga is num ? harga : int.tryParse('$harga') ?? 0) <= 0;
-                              final isTersedia = (m['stok'] ?? 1) == 1;
-                              final isActive = (m['is_active'] ?? 1) == 1;
+                              final isGratis = _toDouble(harga) <= 0;
+                              final isTersedia = _toBool(m['stok'], defaultValue: true);
+                              final isActive = _toBool(m['is_active'], defaultValue: true);
 
                               return DataRow(
                                 cells: [
